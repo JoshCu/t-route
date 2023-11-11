@@ -21,5 +21,6 @@ RUN ./compiler.sh no-e
 
 # increase max open files soft limit
 RUN ulimit -n 10000
-ENTRYPOINT ["/opt/venv/bin/python", "-m", "nwm_routing"]
+#ENTRYPOINT ["/opt/venv/bin/python", "-m", "nwm_routing"]
+
 

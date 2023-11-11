@@ -7,8 +7,9 @@ on:
   pull_request:
     branches:
       - master
+
 jobs:
-  build_and_test:
+  build:
     runs-on: ubuntu-latest
 
     steps:
@@ -18,9 +19,36 @@ jobs:
       - name: Build Docker image
         run: docker build -t troute -f docker/Dockerfile.troute .
 
-      # To run tests in a separate job
-      # either save image artifact or upload to dockerhub
+      - name: Upload image
+        uses: ishworkh/container-image-artifact-upload@v1.0.0
+        with:
+          image: "troute:latest"
+          retention_days: "1"
+
+  end_to_end_test:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download image
+        uses: ishworkh/container-image-artifact-download@v1.0.0
+        with:
+          image: "troute:latest"
+
       - name: Run LowerColorado Test
-        continue-on-error: true  # Continue with the next steps even if this step fails
+        continue-on-error: true
         run: docker/troute.sh -V3 -f test/LowerColorado_TX/test_AnA.yaml
 
+  unit_tests:
+
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download image
+        uses: ishworkh/container-image-artifact-download@v1.0.0
+        with:
+          image: "troute:latest"
+
+      - name: Run pytests
+        continue-on-error: true
+        run: docker run troute:latest pytest
