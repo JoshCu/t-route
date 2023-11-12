@@ -3,7 +3,8 @@ RUN yum install -y epel-release
 RUN yum install -y netcdf netcdf-fortran netcdf-fortran-devel netcdf-openmpi
 
 RUN yum install -y git cmake python python-devel pip 
-RUN git clone https://github.com/NOAA-OWP/t-route.git
+RUN git clone https://github.com/joshcu/t-route.git
+RUN git checkout devcontainer
 
 WORKDIR "/t-route/"
 
