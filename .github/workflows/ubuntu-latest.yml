@@ -5,7 +5,7 @@ name: Python application
 
 on:
   push:
-    branches: [ "master" ]
+    branches: [ "master" , "ubuntu_tests" ]
   pull_request:
     branches: [ "master" ]
 
@@ -51,3 +51,9 @@ jobs:
       run: |
         cd test/LowerColorado_TX
         python -m nwm_routing -f -V3 test_AnA.yaml
+        cd -
+
+    - name: Run pytest
+      run: |
+        python -m pip install pytest
+        pytest
