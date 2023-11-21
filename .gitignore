@@ -7,6 +7,9 @@
 *.o
 *.so
 _site/
+*.mod
+src/kernel/reservoir/*.a
+src/troute-routing/troute/routing/fast_reach/*.c
 
 # Packages #
 ############
@@ -76,3 +79,4 @@ bower_components/
 .grunt/
 src/vendor/
 dist/
+
