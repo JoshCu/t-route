@@ -1,6 +1,7 @@
-import geopandas as gpd
+#import geopandas as gpd
 import pandas as pd
 from pathlib import Path
+import sqlite3
 import sys
 
 def process_branch(edges, start, depth):
@@ -45,9 +46,10 @@ def make_network_from_segment(flowpaths, edges, attributes, depth, segment):
     sub_edges.drop('geometry', axis=1).to_json("flowpath_edge_list.json", orient='records', indent=2)
 
 def make_network_from_geopkg(file_path, depth, segment=None):
-    flowpaths = gpd.read_file(file_path, layer="flowpaths")
-    attributes = gpd.read_file(file_path, layer="flowpath_attributes")
-    edges = gpd.read_file(file_path, layer="flowpath_edge_list")
+    con = sqlite3.connect(file_path)
+    flowpaths = pd.read_sql_table("flowpaths", con, index_col='id')
+    attributes = pd.read_sql_table("flowpath_attributes", con, index_col='id')
+    edges = pd.read_sql_table("flowpath_edge_list", con, index_col='id')
     if segment is None:
         segment = flowpaths[flowpaths['toid'].str.startswith('tnex')].iloc[0]['id']
     make_network_from_segment(flowpaths, edges, attributes, depth, segment)

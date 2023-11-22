@@ -1,8 +1,9 @@
 from .AbstractNetwork import AbstractNetwork
 import pandas as pd
 import numpy as np
-import geopandas as gpd
+#import geopandas as gpd
 import time
+import sqlite3
 import json
 from pathlib import Path
 import pyarrow.parquet as pq
@@ -34,35 +35,14 @@ def read_geopkg(file_path, data_assimilation_parameters, waterbody_parameters, c
     rfc_da = waterbody_parameters.get('rfc',{}).get('reservoir_rfc_forecasts',False)
     if any([streamflow_nudging, usgs_da, usace_da, rfc_da]):
         layers.append('network')
-    
-    # Retrieve geopackage information:
-    if cpu_pool > 1:
-        with Parallel(n_jobs=len(layers)) as parallel:
-            jobs = []
-            for layer in layers:
-                jobs.append(
-                    delayed(gpd.read_file)
-                    #(f, qlat_file_value_col, gw_bucket_col, terrain_ro_col)
-                    #delayed(nhd_io.get_ql_from_csv)
-                    (filename=file_path, layer=layer)                    
-                )
-            gpkg_list = parallel(jobs)
-        table_dict = {layers[i]: gpkg_list[i] for i in range(len(layers))}
-        flowpaths = pd.merge(table_dict.get('flowpaths'), table_dict.get('flowpath_attributes'), on='id')
-        lakes = table_dict.get('lakes', pd.DataFrame())
-        network = table_dict.get('network', pd.DataFrame())
-    else:
-        flowpaths = gpd.read_file(file_path, layer='flowpaths')
-        flowpath_attributes = gpd.read_file(file_path, layer='flowpath_attributes')
-        flowpaths = pd.merge(flowpaths, flowpath_attributes, on='id')
-        # If waterbodies are being simulated, read lakes table
-        lakes = pd.DataFrame()
-        if waterbody_parameters.get('break_network_at_waterbodies', False):
-            lakes = gpd.read_file(file_path, layer='lakes')
-        # If any DA is activated, read network table as well for gage information
-        network = pd.DataFrame()
-        if any([streamflow_nudging, usgs_da, usace_da, rfc_da]):
-            network = gpd.read_file(file_path, layer='network')
+
+    # Read the geopackage
+    con = sqlite3.connect(file_path)
+    flowpaths = pd.merge(pd.read_sql_table('flowpaths', con, index_col='id'),\
+                         pd.read_sql_table('flowpath_attributes', con, index_col='id'), on='id')
+    lakes = pd.DataFrame() if 'lakes' not in layers else pd.read_sql_table('lakes', con, index_col='id')
+    network = pd.DataFrame() if 'network' not in layers else pd.read_sql_table('network', con, index_col='id')
+    con.close()
 
     return flowpaths, lakes, network
 
@@ -86,8 +66,8 @@ def read_json(file_path, edge_list):
     return df_main
 
 def read_geojson(file_path):
-    flowpaths = gpd.read_file(file_path)
-    return flowpaths
+    #flowpaths = gpd.read_file(file_path)
+    raise NotImplementedError("GeoJSON reading removed. Use GeoPackage instead.")
 
 def numeric_id(flowpath):
     id = flowpath['key'].split('-')[-1]
