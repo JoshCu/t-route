@@ -1,0 +1,16 @@
+{
+    "build": {
+        "dockerfile": "../docker/Dockerfile.troute"
+    },
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "ms-python.python",
+                "ms-python.vscode-pylance"
+            ]
+        }
+    },
+    "mounts": [
+        "source=/mnt/ramdisk,target=/mnt/ramdisk,type=bind,consistency=cached"
+    ]
+}

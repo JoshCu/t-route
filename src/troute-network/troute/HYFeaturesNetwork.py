@@ -582,12 +582,13 @@ class HYFeaturesNetwork(AbstractNetwork):
             self._rfc_lake_gage_crosswalk = pd.DataFrame()
     
     def build_qlateral_array(self, run,):
-        
         # TODO: set default/optional arguments
         qts_subdivisions = run.get("qts_subdivisions", 1)
         nts = run.get("nts", 1)
         qlat_input_folder = run.get("qlat_input_folder", None)
         qlat_input_file = run.get("qlat_input_file", None)
+        qlat_file_pattern_filter = run.get("qlat_file_pattern_filter", None)
+        optimized_parquet = (qlat_file_pattern_filter == "*nexout_partition.parquet")
 
         if qlat_input_folder:
             qlat_input_folder = Path(qlat_input_folder)
@@ -661,11 +662,20 @@ class HYFeaturesNetwork(AbstractNetwork):
                 columns=range(nts // qts_subdivisions),
                 dtype="float32",
             )
+        if optimized_parquet:
+            min_stamp = qlats_df.columns[0]
+            delta = abs(int(qlats_df.columns[0]) - int(qlats_df.columns[1]))
+            start_stamp = int(run.get("start_timestamp",0))
+            final_stamp = int(run.get("final_timestamp",0))
+            start_index = (start_stamp - min_stamp) // delta
+            final_index = (final_stamp - min_stamp) // delta
+            qlats_df = qlats_df.iloc[:, start_index:final_index + 1]
 
-        # TODO: Make a more sophisticated date-based filter
-        max_col = 1 + nts // qts_subdivisions
-        if len(qlats_df.columns) > max_col:
-            qlats_df.drop(qlats_df.columns[max_col:], axis=1, inplace=True)
+        else:
+            # TODO: Make a more sophisticated date-based filter
+            max_col = 1 + nts // qts_subdivisions
+            if len(qlats_df.columns) > max_col:
+                qlats_df.drop(qlats_df.columns[max_col:], axis=1, inplace=True)
 
         if not self.segment_index.empty:
             qlats_df = qlats_df[qlats_df.index.isin(self.segment_index)]
