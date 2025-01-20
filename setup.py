@@ -46,12 +46,15 @@ class CustomBuildExt(build_ext):
 
 def get_extensions():
     USE_CYTHON = "--use-cython" in sys.argv
+    print(sys.argv)
+    if not "egg_info" in sys.argv:
+        raise Exception("Stop here")
     USE_CYTHON = True #TODO fix for uv build
     if USE_CYTHON:
         #sys.argv.remove("--use-cython")
         from Cython.Build import cythonize
 
-    ext = "pyx" if USE_CYTHON else "c"
+    ext = "pyx" #if USE_CYTHON else "c"
 
     # All extensions from your network and routing modules
     extensions = [
@@ -113,18 +116,8 @@ def get_extensions():
             include_dirs=[np.get_include()],
         ),
         Extension(
-            "troute.routing.fast_reach.diffusive_hybrid",
-            sources=[f"src/troute/routing/fast_reach/diffusive_hybrid.{ext}"],
-            include_dirs=[np.get_include()],
-        ),
-        Extension(
             "troute.routing.fast_reach.diffusive_cnt",
             sources=[f"src/troute/routing/fast_reach/diffusive_cnt.{ext}"],
-            include_dirs=[np.get_include()],
-        ),
-        Extension(
-            "troute.routing.fast_reach.reservoir",
-            sources=[f"src/troute/routing/fast_reach/reservoir.{ext}"],
             include_dirs=[np.get_include()],
         ),
         Extension(
