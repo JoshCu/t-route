@@ -15,7 +15,7 @@ endif
 
 
 .PHONY: reach all install
-all: reach 
+all: reach
 
 reach: mc_single_seg.o pymc_single_seg.o
 
@@ -29,7 +29,7 @@ precis.mod: varPrecision.f90
 	$(FC) $(F90FLAGS) $<
 
 install:
-	cp *.o ../../../src/troute-routing/troute/routing/fast_reach
+	cp *.o ../../routing/fast_reach
 
 %.o: %.F
 	$(FC) $(F90FLAGS) -o $@ $<
