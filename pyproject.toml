@@ -1,0 +1,124 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel", "numpy", "Cython>3,!=3.0.4"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "troute"
+version = "0.0.1"
+description = "Hydrologic and hydraulic routing for the U.S. National Water Model"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "DOC" }
+authors = [
+    { name = "Austin Raney", email = "austin.raney@noaa.gov" },
+    { name = "Adam Wlostowski", email = "adam.wlostowski@noaa.gov" },
+]
+maintainers = [{ name = "NOAA-OWP", email = "example@noaa.gov" }]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: Unix",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Fortran",
+    "Topic :: Scientific/Engineering :: Hydrology",
+]
+dependencies = [
+    "deprecated",
+    "geopandas>=1.0.0",
+    "hydrotools.nwis_client",
+    "joblib",
+    "netcdf4",
+    "numpy>=1.21.0",
+    "pandas>=1.1.5",
+    "pyarrow",
+    "pydantic~=1.10",
+    "pyyaml",
+    "toolz",
+    "typing_extensions",
+    "xarray",
+]
+
+[project.urls]
+Homepage = "https://github.com/NOAA-OWP/t-route"
+Documentation = "https://github.com/NOAA-OWP/t-route/docs"
+Repository = "https://github.com/NOAA-OWP/t-route.git"
+Issues = "https://github.com/NOAA-OWP/t-route/issues"
+
+[project.optional-dependencies]
+test = ["pytest>=7.0.0", "pytest-cov", "pyyaml"]
+dev = ["black", "flake8", "isort", "mypy", "pre-commit"]
+docs = ["sphinx", "sphinx-rtd-theme", "myst-parser"]
+
+[project.scripts]
+cli = "troute.cli:main"
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["troute*"]
+
+[tool.setuptools.package-data]
+"troute" = ["__init__.pxd"]
+"troute.network" = [
+    "reach.pxd",
+    "__init__.pxd",
+    "reach_structs.h",
+    "reach_structs.c",
+]
+"troute.network.musking" = [
+    "mc_reach.pxd",
+    "__init__.pxd",
+    "mc_reach_structs.h",
+    "mc_reach_structs.c",
+]
+"troute.network.reservoirs" = ["__init__.pxd"]
+"troute.network.reservoirs.levelpool" = [
+    "__init__.pxd",
+    "levelpool.pxd",
+    "levelpool_structs.h",
+    "levelpool_structs.c",
+]
+"troute.network.reservoirs.hybrid" = [
+    "__init__.pxd",
+    "hybrid.pxd",
+    "hybrid_structs.h",
+    "hybrid_structs.c",
+]
+"troute.network.reservoirs.rfc" = [
+    "__init__.pxd",
+    "rfc.pxd",
+    "rfc_structs.h",
+    "rfc_structs.c",
+]
+"troute.fast_reach" = ["reach.pxd", "fortran_wrappers.pxd", "utils.pxd"]
+"troute.kernels" = ["*.so", "*.pyd", "*.dll"]
+
+[options]
+include_package_data = true
+
+[tool.black]
+line-length = 88
+target-version = ["py39"]
+include = '\.pyi?$'
+
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+line_length = 88
+
+[tool.mypy]
+python_version = "3.9"
+warn_return_any = true
+warn_unused_configs = true
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+addopts = "-ra -q --cov=troute"
+testpaths = ["tests"]
