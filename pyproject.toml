@@ -97,7 +97,7 @@ include = ["troute*"]
     "rfc_structs.c",
 ]
 "troute.fast_reach" = ["reach.pxd", "fortran_wrappers.pxd", "utils.pxd"]
-"troute.kernels" = ["*.so", "*.pyd", "*.dll"]
+"troute.kernel" = ["**/*"]
 
 [options]
 include_package_data = true

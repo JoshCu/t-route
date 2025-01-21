@@ -1,9 +1,30 @@
-from setuptools import setup, Extension
+from setuptools import setup, Extension, Command
 import sys
 import numpy as np
 import os
 import subprocess
 from setuptools.command.build_ext import build_ext
+from Cython.Build import cythonize
+
+class BuildFortran(Command):
+    description = 'build Fortran reservoir kernels'
+    user_options = []
+
+    def initialize_options(self):
+        pass
+
+    def finalize_options(self):
+        pass
+
+    def run(self):
+
+        # Build reservoir kernels
+        print("Building Fortran muskingum kernel...")
+        subprocess.check_call(['make', '-C', 'src/troute/kernel/muskingum'])
+        print("Building Fortran diffusive kernel...")
+        subprocess.check_call(['make', '-C', 'src/troute/kernel/diffusive'])
+        print("Building Fortran reservoir kernel...")
+        subprocess.check_call(['make', '-C', 'src/troute/kernel/reservoir'])
 
 def get_fortran_config():
     fcompopt = {
@@ -33,6 +54,13 @@ def get_fortran_config():
     return fcompiler_type, fcompopt, flinkopt, flibs
 
 class CustomBuildExt(build_ext):
+    def run(self):
+            # Build Fortran first
+            self.run_command('build_fortran')
+
+            # Then proceed with normal build_ext
+            super().run()
+
     def build_extensions(self):
         fcompiler_type, fcompopt, flinkopt, flibs = get_fortran_config()
         for e in self.extensions:
@@ -45,17 +73,9 @@ class CustomBuildExt(build_ext):
         build_ext.build_extensions(self)
 
 def get_extensions():
-    USE_CYTHON = "--use-cython" in sys.argv
-    print(sys.argv)
-    if not "egg_info" in sys.argv:
-        raise Exception("Stop here")
-    USE_CYTHON = True #TODO fix for uv build
-    if USE_CYTHON:
-        #sys.argv.remove("--use-cython")
-        from Cython.Build import cythonize
-
-    ext = "pyx" #if USE_CYTHON else "c"
-
+    # setuptools automatically detects cython files, so long as cython is installed
+    # Building like this and including pyx and c files in the package allows for the use of both by the user
+    ext = "pyx"
     # All extensions from your network and routing modules
     extensions = [
         # Network extensions
@@ -73,21 +93,29 @@ def get_extensions():
             "troute.network.reservoirs.levelpool.levelpool",
             sources=[f"src/troute/network/reservoirs/levelpool/levelpool.{ext}"],
             include_dirs=[np.get_include(), "src/troute/network/"],
-            extra_objects=["./libs/binding_lp.a"],
+            extra_objects=["src/troute/kernel/reservoir/binding_lp.a"],
             libraries=["netcdff", "netcdf"],
         ),
         Extension(
             "troute.network.reservoirs.rfc.rfc",
             sources=[f"src/troute/network/reservoirs/rfc/rfc.{ext}"],
             include_dirs=[np.get_include(), "src/troute/network/"],
-            extra_objects=["./libs/bind_rfc.a"],
+            extra_objects=["src/troute/kernel/reservoir/bind_rfc.a"],
             libraries=["netcdff", "netcdf"],
         ),
         # Routing extensions
+        # Why does the routing mc reach need to source the network mc reach?
+        # Why are there two of them?
         Extension(
             "troute.routing.fast_reach.mc_reach",
             sources=[f"src/troute/routing/fast_reach/mc_reach.{ext}"],
-            include_dirs=[np.get_include()],
+            # Not wildcarding this for now to try an keep track of what's being used and what's just duplicated
+            include_dirs=[np.get_include(),
+                "src/troute/network/",
+                "src/troute/network/musking/",
+                "src/troute/network/reservoirs/levelpool/",
+                "src/troute/network/reservoirs/rfc"
+            ],
         ),
         Extension(
             "troute.routing.fast_reach.simple_da",
@@ -97,16 +125,25 @@ def get_extensions():
         Extension(
             "troute.routing.fast_reach.diffusive",
             sources=[f"src/troute/routing/fast_reach/diffusive.{ext}"],
-            include_dirs=[np.get_include()],
+            extra_objects=["src/troute/kernel/diffusive/diffusive.o","src/troute/kernel/diffusive/pydiffusive.o"],
+            include_dirs=[np.get_include(), "src/troute/routing/fast_reach/"],
         ),
         Extension(
             "troute.routing.fast_reach.chxsec_lookuptable",
             sources=[f"src/troute/routing/fast_reach/chxsec_lookuptable.{ext}"],
+            extra_objects=[
+                    "src/troute/kernel/diffusive/chxsec_lookuptable.o",
+                    "src/troute/kernel/diffusive/pychxsec_lookuptable.o",
+                ],
             include_dirs=[np.get_include()],
         ),
         Extension(
             "troute.routing.fast_reach.reach",
             sources=[f"src/troute/routing/fast_reach/reach.{ext}"],
+            extra_objects=[
+                "src/troute/kernel/muskingum/mc_single_seg.o",
+                "src/troute/kernel/muskingum/pymc_single_seg.o",
+            ],
             include_dirs=[np.get_include()],
         ),
         # Additional routing extensions
@@ -127,19 +164,19 @@ def get_extensions():
         ),
     ]
 
-    if USE_CYTHON:
-        extensions = cythonize(
-            extensions,
-            compiler_directives={
-                "language_level": 3,
-                "embedsignature": True,
-            }
-        )
+    extensions = cythonize(
+        extensions,
+        compiler_directives={
+            "language_level": 3,
+            "embedsignature": True,
+        }
+    )
 
     return extensions
 
 if __name__ == "__main__":
     setup(
         ext_modules=get_extensions(),
-        cmdclass={'build_ext': CustomBuildExt},
+        cmdclass={'build_ext': CustomBuildExt,
+                  'build_fortran': BuildFortran},
     )
