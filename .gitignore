@@ -1,6 +1,7 @@
 *.o
 *.so
 *.c
+!src/**/*_structs.c
 *.pyc
 *.egg-info/
 __pycache__/
