@@ -64,7 +64,7 @@ where = ["src"]
 include = ["troute*"]
 
 [tool.setuptools.package-data]
-"troute" = ["__init__.pxd"]
+"troute" = ["__init__.pxd", "**/*.pyx"]
 "troute.network" = [
     "reach.pxd",
     "__init__.pxd",

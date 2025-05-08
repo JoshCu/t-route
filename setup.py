@@ -41,6 +41,7 @@ def get_fortran_config():
     }
 
     fc = os.environ.get('FC') or os.environ.get('F90') or subprocess.run(['which', 'fc'], capture_output=True).stdout.decode('UTF-8').strip()
+    fc = "gfortran"
     result = subprocess.run([fc, '--version'], stdout=subprocess.PIPE).stdout.decode('utf-8')
 
     if "GNU" in result:
