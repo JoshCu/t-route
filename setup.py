@@ -2,8 +2,21 @@ from setuptools import setup, Extension, Command
 import numpy as np
 import os
 import subprocess
+import glob
+from pathlib import Path
 from setuptools.command.build_ext import build_ext
 from Cython.Build import cythonize
+
+def needs_rebuild(target, dependencies):
+    """Check if target needs rebuilding based on dependency timestamps"""
+    if not os.path.exists(target):
+        return True
+
+    target_mtime = os.path.getmtime(target)
+    for dep in dependencies:
+        if os.path.exists(dep) and os.path.getmtime(dep) > target_mtime:
+            return True
+    return False
 
 class BuildFortran(Command):
     description = 'build Fortran reservoir kernels'
@@ -20,13 +33,49 @@ class BuildFortran(Command):
         fc = "gfortran"
         os.environ["F90"] = fc
         os.environ["NETCDFINC"] = "/usr/lib64/gfortran/modules/"
-        # Build kernels
-        print("Building Fortran muskingum kernel...")
-        subprocess.check_call(['make', '-C', 'src/troute/kernel/muskingum'])
-        print("Building Fortran diffusive kernel...")
-        subprocess.check_call(['make', '-C', 'src/troute/kernel/diffusive'])
-        print("Building Fortran reservoir kernel...")
-        subprocess.check_call(['make', '-C', 'src/troute/kernel/reservoir'])
+
+        # Define kernel build configurations
+        kernels = [
+            {
+                'name': 'muskingum',
+                'path': 'src/troute/kernel/muskingum',
+                'sources': ['src/troute/kernel/muskingum/*.f90', 'src/troute/kernel/muskingum/makefile'],
+                'targets': ['src/troute/kernel/muskingum/mc_single_seg.o', 'src/troute/kernel/muskingum/pymc_single_seg.o']
+            },
+            {
+                'name': 'diffusive',
+                'path': 'src/troute/kernel/diffusive',
+                'sources': ['src/troute/kernel/diffusive/*.f90', 'src/troute/kernel/diffusive/makefile'],
+                'targets': ['src/troute/kernel/diffusive/diffusive.o', 'src/troute/kernel/diffusive/pydiffusive.o',
+                           'src/troute/kernel/diffusive/chxsec_lookuptable.o', 'src/troute/kernel/diffusive/pychxsec_lookuptable.o']
+            },
+            {
+                'name': 'reservoir',
+                'path': 'src/troute/kernel/reservoir',
+                'sources': ['src/troute/kernel/reservoir/**/*.F', 'src/troute/kernel/reservoir/**/*.f90',
+                           'src/troute/kernel/reservoir/makefile'],
+                'targets': ['src/troute/kernel/reservoir/binding_lp.a', 'src/troute/kernel/reservoir/bind_rfc.a']
+            }
+        ]
+
+        for kernel in kernels:
+            # Collect all source files
+            source_files = []
+            for pattern in kernel['sources']:
+                source_files.extend(glob.glob(pattern, recursive=True))
+
+            # Check if any target needs rebuilding
+            needs_build = False
+            for target in kernel['targets']:
+                if needs_rebuild(target, source_files):
+                    needs_build = True
+                    break
+
+            if needs_build:
+                print(f"Building Fortran {kernel['name']} kernel...")
+                subprocess.check_call(['make', '-C', kernel['path']])
+            else:
+                print(f"Fortran {kernel['name']} kernel is up to date, skipping...")
 
 def get_fortran_config():
     fcompopt = {
@@ -58,14 +107,39 @@ def get_fortran_config():
 
 class CustomBuildExt(build_ext):
     def run(self):
-            # Build Fortran first
-            self.run_command('build_fortran')
-
-            # Then proceed with normal build_ext
-            super().run()
+        # Build Fortran first
+        self.run_command('build_fortran')
+        # Then proceed with normal build_ext
+        super().run()
 
     def build_extensions(self):
         fcompiler_type, fcompopt, flinkopt, flibs = get_fortran_config()
+
+        # Check each extension for changes
+        extensions_to_build = []
+        for ext in self.extensions:
+            # Get source files for this extension
+            source_files = ext.sources[:]
+
+            # Add any extra objects as dependencies
+            if hasattr(ext, 'extra_objects'):
+                source_files.extend(ext.extra_objects)
+
+            # Determine output path for this extension
+            ext_path = self.get_ext_fullpath(ext.name)
+
+            # Check if extension needs rebuilding
+            if needs_rebuild(ext_path, source_files):
+                extensions_to_build.append(ext)
+                print(f"Extension {ext.name} needs rebuilding")
+            else:
+                print(f"Extension {ext.name} is up to date, skipping...")
+
+        # Only build extensions that need it
+        original_extensions = self.extensions
+        self.extensions = extensions_to_build
+
+        # Apply fortran configuration to extensions that need building
         for e in self.extensions:
             if fcompiler_type in fcompopt:
                 e.extra_compile_args.extend(fcompopt[fcompiler_type])
@@ -73,7 +147,12 @@ class CustomBuildExt(build_ext):
                 e.extra_link_args.extend(flinkopt[fcompiler_type])
             if fcompiler_type in flibs:
                 e.libraries.extend(flibs[fcompiler_type])
-        build_ext.build_extensions(self)
+
+        if self.extensions:
+            build_ext.build_extensions(self)
+
+        # Restore original extensions list
+        self.extensions = original_extensions
 
 def get_extensions():
     # setuptools automatically detects cython files, so long as cython is installed
@@ -107,12 +186,9 @@ def get_extensions():
             libraries=["netcdff", "netcdf"],
         ),
         # Routing extensions
-        # Why does the routing mc reach need to source the network mc reach?
-        # Why are there two of them?
         Extension(
             "troute.routing.fast_reach.mc_reach",
             sources=[f"src/troute/routing/fast_reach/mc_reach.{ext}"],
-            # Not wildcarding this for now to try an keep track of what's being used and what's just duplicated
             include_dirs=[np.get_include(),
                 "src/troute/network/",
                 "src/troute/network/musking/",
