@@ -3,7 +3,9 @@ from functools import partial
 import troute.network.nhd_network as nhd_network
 from datetime import timedelta
 import pandas as pd
+from troute.routing.diffusive_utils import fp_qlat_map,unpack_output
 import math
+
 
 
 def adj_alt1(
@@ -237,55 +239,6 @@ def fp_chgeo_map(
         dx_ar_g,
     )
 
-
-def fp_qlat_map(
-    mx_jorder,
-    ordered_reaches,
-    nts_ql_g,
-    param_df,
-    qlat,
-    qlat_g,
-):
-    """
-    lateral inflow mapping between Python and Fortran
-
-    Parameters
-    ----------
-    mx_jorder -- (int) maximum network reach order
-    nts_ql_g -- (int) numer of qlateral timesteps
-    param_df --(DataFrame) geomorphic parameters
-    qlat -- (DataFrame) qlateral data (m3/sec)
-    qlat_g -- (ndarray of float32) empty qlateral array to be filled
-
-    Returns
-    -------
-    qlat_g -- (ndarray of float32) qlateral array (m3/sec/m)
-
-    Notes
-    -----
-    data in qlat_g are normalized by segment length with units of m2/sec = m3/sec/m
-    """
-    frj = -1
-    for x in range(mx_jorder, -1, -1):
-        for head_segment, reach in ordered_reaches[x]:
-            seg_list = reach["segments_list"]
-            ncomp = reach["number_segments"]
-            frj = frj + 1
-            for seg in range(0, ncomp):
-                segID = seg_list[seg]
-                for tsi in range(0, nts_ql_g):
-                    if seg < ncomp - 1:
-
-                        tlf = qlat.loc[segID, tsi]
-                        dx = param_df.loc[segID, 'dx']
-                        qlat_g[tsi, seg, frj] = tlf / dx  # [m^2/sec]
-
-                    else:
-                        qlat_g[
-                            tsi, seg, frj
-                        ] = 0.0  # seg=ncomp is actually for bottom node in Fotran code.
-                        # And, lateral flow enters between adjacent nodes.
-    return qlat_g
 
 def fp_naturalxsec_map(
                 ordered_reaches,
@@ -1048,61 +1001,3 @@ def diffusive_input_data_v02(
         diff_ins["crosswalk_g"] =  crosswalk_g
         diff_ins["z_thalweg_g"] = z_thalweg_g
     return diff_ins
-
-def unpack_output(pynw, ordered_reaches, out_q, out_elv):
-    """
-    Unpack diffusive wave output arrays
-
-    Parameters
-    ----------
-    pynw -- (dict) ordered reach head segments
-    ordered_reaches --
-    out_q -- (diffusive._memoryviewslice of float64) diffusive wave model flow output (m3/sec)
-    out_elv -- (diffusive._memoryviewslice of float64) diffusive wave model water surface elevation output (meters)
-
-    Returns
-    -------
-    np.asarray(rch_list, dtype=np.intp) - segment indices
-    np.asarray(dat_all, dtype = 'float32') - flow, velocity, elevation array
-    """
-
-    reach_heads = list(pynw.values())
-    nts = len(out_q[:, 0, 0])
-
-    i = 1
-    rch_list = []
-    for o in ordered_reaches.keys():
-        for rch in ordered_reaches[o]:
-
-            rch_segs = rch[1]["segments_list"]
-            rch_list.extend(rch_segs[:-1])
-
-            j = reach_heads.index(rch[0])
-
-            if i == 1:
-                dat_all = np.empty((len(rch_segs)-1, nts * 3))
-                dat_all[:] = np.nan
-                # flow result
-                dat_all[:, ::3] = np.transpose(np.array(out_q[:, 1 : len(rch_segs), j]))
-                # elevation result
-                dat_all[:, 2::3] = np.transpose(
-                    np.array(out_elv[:, 1 : len(rch_segs), j])
-                )
-
-            else:
-                dat_all_c = np.empty((len(rch_segs)-1, nts * 3))
-                dat_all_c[:] = np.nan
-                # flow result
-                dat_all_c[:, ::3] = np.transpose(
-                    np.array(out_q[:, 1 : len(rch_segs), j])
-                )
-                # elevation result
-                dat_all_c[:, 2::3] = np.transpose(
-                    np.array(out_elv[:, 1 : len(rch_segs), j])
-                )
-                # concatenate
-                dat_all = np.concatenate((dat_all, dat_all_c))
-
-            i += 1
-
-    return np.asarray(rch_list, dtype=np.intp), np.asarray(dat_all, dtype="float32")
