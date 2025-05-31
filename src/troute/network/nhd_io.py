@@ -14,10 +14,11 @@ from joblib import delayed, Parallel
 from cftime import date2num
 from datetime import datetime, timedelta
 
-LOG = logging.getLogger('')
+LOG = logging.getLogger("")
+
 
 def read_netcdf(geo_file_path):
-    '''
+    """
     Open a netcdf file with xarray and convert to dataframe
 
     Arguments
@@ -32,9 +33,10 @@ def read_netcdf(geo_file_path):
     -----
     - When handling large volumes of netCDF files, xarray is not the most efficient.
 
-    '''
+    """
     with xr.open_dataset(geo_file_path) as ds:
         return ds.to_dataframe()
+
 
 def read_csv(geo_file_path, header="infer", layer_string=None):
     if geo_file_path.suffix == ".zip":
@@ -46,11 +48,16 @@ def read_csv(geo_file_path, header="infer", layer_string=None):
     else:
         return pd.read_csv(geo_file_path, header=header)
 
+
 def read(geo_file_path, layer_string=None, driver_string=None):
     if geo_file_path.suffix == ".nc":
         return read_netcdf(geo_file_path)
     else:
-        raise RuntimeError("Cannot read file {}. Unsupported file type {}.".format(geo_file_path, geo_file_path.suffix))
+        raise RuntimeError(
+            "Cannot read file {}. Unsupported file type {}.".format(
+                geo_file_path, geo_file_path.suffix
+            )
+        )
 
 
 def read_mask(path, layer_string=None):
@@ -58,7 +65,7 @@ def read_mask(path, layer_string=None):
 
 
 def read_diffusive_domain(domain_file):
-    '''
+    """
     Read diffusive domain data from .ymal or .json file.
 
     Arguments
@@ -70,7 +77,7 @@ def read_diffusive_domain(domain_file):
     data (dict int: [int]): domain tailwater segments: list of segments in domain
                             (includeing tailwater segment)
 
-    '''
+    """
     if domain_file[-4:] == "yaml":
         with open(domain_file) as domain:
             data = yaml.load(domain, Loader=yaml.SafeLoader)
@@ -80,8 +87,9 @@ def read_diffusive_domain(domain_file):
 
     return data
 
+
 def read_coastal_boundary_domain(domain_file):
-    '''
+    """
     Read coastal boundary domain from .ymal or .json file.
 
     Arguments
@@ -93,7 +101,7 @@ def read_coastal_boundary_domain(domain_file):
     data (dict int: int): diffusive domain tailwater segments: coastal domain segments
 
 
-    '''
+    """
 
     if domain_file[-4:] == "yaml":
         with open(domain_file) as domain:
@@ -105,11 +113,7 @@ def read_coastal_boundary_domain(domain_file):
     return data
 
 
-def read_lakeparm(
-    parm_file,
-    lake_index_field="lake_id",
-    lake_id_mask=None
-):
+def read_lakeparm(parm_file, lake_index_field="lake_id", lake_id_mask=None):
     """
     Reads LAKEPARM file and prepares a dataframe, filtered
     to the relevant reservoirs, to provide the parameters
@@ -145,13 +149,12 @@ def read_reservoir_parameter_file(
     usace_hybrid,
     rfc_forecast,
     lake_index_field="lake_id",
-    usgs_gage_id_field = "usgs_gage_id",
-    usgs_lake_id_field = "usgs_lake_id",
-    usace_gage_id_field = "usace_gage_id",
-    usace_lake_id_field = "usace_lake_id",
+    usgs_gage_id_field="usgs_gage_id",
+    usgs_lake_id_field="usgs_lake_id",
+    usace_gage_id_field="usace_gage_id",
+    usace_lake_id_field="usace_lake_id",
     lake_id_mask=None,
 ):
-
     """
     Reads reservoir parameter file, which is separate from the LAKEPARM file.
     Extracts reservoir "type" codes and returns in a DataFrame
@@ -195,40 +198,40 @@ def read_reservoir_parameter_file(
 
         if (usgs_gage_id_field in ds_vars) and (usgs_lake_id_field in ds_vars):
             usgs_crosswalk = pd.DataFrame(
-                data = ds[usgs_gage_id_field].to_numpy(),
-                index = ds[usgs_lake_id_field].to_numpy(),
-                columns = [usgs_gage_id_field]
+                data=ds[usgs_gage_id_field].to_numpy(),
+                index=ds[usgs_lake_id_field].to_numpy(),
+                columns=[usgs_gage_id_field],
             )
             usgs_crosswalk.index.name = usgs_lake_id_field
-            usgs_crosswalk[usgs_gage_id_field] = usgs_crosswalk[usgs_gage_id_field].apply(lambda x: x.decode('utf-8')).str.strip()
+            usgs_crosswalk[usgs_gage_id_field] = (
+                usgs_crosswalk[usgs_gage_id_field].apply(lambda x: x.decode("utf-8")).str.strip()
+            )
         else:
             usgs_crosswalk = None
 
         if (usace_gage_id_field in ds_vars) and (usace_lake_id_field in ds_vars):
             usace_crosswalk = pd.DataFrame(
-                data = ds[usace_gage_id_field].to_numpy(),
-                index = ds[usace_lake_id_field].to_numpy(),
-                columns = [usace_gage_id_field]
+                data=ds[usace_gage_id_field].to_numpy(),
+                index=ds[usace_lake_id_field].to_numpy(),
+                columns=[usace_gage_id_field],
             )
             usace_crosswalk.index.name = usace_lake_id_field
-            usace_crosswalk[usace_gage_id_field] = usace_crosswalk[usace_gage_id_field].apply(lambda x: x.decode('utf-8')).str.strip()
+            usace_crosswalk[usace_gage_id_field] = (
+                usace_crosswalk[usace_gage_id_field].apply(lambda x: x.decode("utf-8")).str.strip()
+            )
         else:
             usace_crosswalk = None
 
     # drop duplicate indices
-    df1 = (df1.reset_index()
-           .drop_duplicates(subset="lake_id")
-           .set_index("lake_id")
-           .sort_index()
-          )
+    df1 = df1.reset_index().drop_duplicates(subset="lake_id").set_index("lake_id").sort_index()
 
     # recode to levelpool (1) for reservoir DA types set to false
     if usgs_hybrid == False:
-        df1[df1['reservoir_type'] == 2] = 1
+        df1[df1["reservoir_type"] == 2] = 1
     if usace_hybrid == False:
-        df1[df1['reservoir_type'] == 3] = 1
+        df1[df1["reservoir_type"] == 3] = 1
     if rfc_forecast == False:
-        df1[df1['reservoir_type'] == 4] = 1
+        df1[df1["reservoir_type"] == 4] = 1
 
     return df1, usgs_crosswalk, usace_crosswalk
 
@@ -246,11 +249,11 @@ def get_ql_from_csv(nhd_input_file, index_col=0):
 
 def get_ql_from_chrtout(
     f,
-    qlateral_varname = "q_lateral",
+    qlateral_varname="q_lateral",
     qbucket_varname="qBucket",
-    runoff_varname = "qSfcLatRunoff",
+    runoff_varname="qSfcLatRunoff",
 ):
-    '''
+    """
     Return an array of qlateral data from a single CHRTOUT netCDF4 file.
     Lateral inflows to any segment are calculated as the sum of qBucket
     and qSfcLatRunoff variables. In the event that one or both of these
@@ -267,21 +270,18 @@ def get_ql_from_chrtout(
 
     NOTES:
     - This is very bespoke to WRF-Hydro
-    '''
-    with netCDF4.Dataset(
-        filename = f,
-        mode = 'r',
-        format = "NETCDF4"
-    ) as ds:
-
+    """
+    with netCDF4.Dataset(filename=f, mode="r", format="NETCDF4") as ds:
         all_variables = list(ds.variables.keys())
         if qbucket_varname in all_variables and runoff_varname in all_variables:
-            dat = ds.variables[qbucket_varname][:].filled(fill_value = 0.0) + \
-                ds.variables[runoff_varname][:].filled(fill_value = 0.0)
+            dat = ds.variables[qbucket_varname][:].filled(fill_value=0.0) + ds.variables[
+                runoff_varname
+            ][:].filled(fill_value=0.0)
         else:
-            dat = ds.variables[qlateral_varname][:].filled(fill_value = 0.0)
+            dat = ds.variables[qlateral_varname][:].filled(fill_value=0.0)
 
     return dat
+
 
 # TODO: Generalize this name -- perhaps `read_wrf_hydro_chrt_mf()`
 def get_ql_from_wrf_hydro_mf(
@@ -289,7 +289,7 @@ def get_ql_from_wrf_hydro_mf(
     index_col="feature_id",
     value_col="q_lateral",
     gw_col="qBucket",
-    runoff_col = "qSfcLatRunoff",
+    runoff_col="qSfcLatRunoff",
 ):
     """
     qlat_files: globbed list of CHRTOUT files containing desired lateral inflows
@@ -329,12 +329,11 @@ def get_ql_from_wrf_hydro_mf(
         qlat_files,
         combine="nested",
         concat_dim="time",
-#         data_vars=["q_lateral","qBucket","qSfcLatRunoff"],
+        #         data_vars=["q_lateral","qBucket","qSfcLatRunoff"],
         coords="minimal",
         compat="override",
         # parallel=True,
     ) as ds:
-
         # if forcing file contains a variable with the specified value_col name,
         # then use it, otherwise compute q_lateral as the sum of qBucket and qSfcLatRunoff
         try:
@@ -360,16 +359,8 @@ def get_ql_from_wrf_hydro_mf(
     return ql
 
 
-def write_chanobs(
-    chanobs_filepath,
-    flowveldepth,
-    link_gage_df,
-    t0,
-    dt,
-    nts
-):
-
-    '''
+def write_chanobs(chanobs_filepath, flowveldepth, link_gage_df, t0, dt, nts):
+    """
     Write results at gage locations to netcdf.
     If the user specified file does not exist, create it.
     If the user specified file already exiss, append it.
@@ -386,7 +377,7 @@ def write_chanobs(
     Returns
     -------------
 
-    '''
+    """
     # TODO: for and if statements are improvised just in case when link of gage location is not in flowveldepth, which should be fixed
     link_na = []
     for link in link_gage_df.index:
@@ -395,26 +386,22 @@ def write_chanobs(
     link_gage_df_nona = link_gage_df.drop(link_na)
 
     # array of segment linkIDs at gage locations. Results from these segments will be written
-    #gage_feature_id = link_gage_df.index.to_numpy(dtype = "int64")
-    gage_feature_id = link_gage_df_nona.index.to_numpy(dtype = "int64")
+    # gage_feature_id = link_gage_df.index.to_numpy(dtype = "int64")
+    gage_feature_id = link_gage_df_nona.index.to_numpy(dtype="int64")
 
     # array of simulated flow data at gage locations
-    #gage_flow_data = flowveldepth.loc[link_gage_df.index].iloc[:,::3].to_numpy(dtype="float32")
-    gage_flow_data = flowveldepth.loc[link_gage_df_nona.index].iloc[:,::3].to_numpy(dtype="float32")
+    # gage_flow_data = flowveldepth.loc[link_gage_df.index].iloc[:,::3].to_numpy(dtype="float32")
+    gage_flow_data = (
+        flowveldepth.loc[link_gage_df_nona.index].iloc[:, ::3].to_numpy(dtype="float32")
+    )
 
     # array of simulation time
-    gage_flow_time = [t0 + timedelta(seconds = (i+1) * dt) for i in range(nts)]
+    gage_flow_time = [t0 + timedelta(seconds=(i + 1) * dt) for i in range(nts)]
 
     if not chanobs_filepath.is_file():
-
         # if no chanobs file exists, create a new one
         # open netCDF4 Dataset in write mode
-        with netCDF4.Dataset(
-            filename = chanobs_filepath,
-            mode = 'w',
-            format = "NETCDF4"
-        ) as f:
-
+        with netCDF4.Dataset(filename=chanobs_filepath, mode="w", format="NETCDF4") as f:
             # =========== DIMENSIONS ===============
             _ = f.createDimension("time", None)
             _ = f.createDimension("feature_id", len(gage_feature_id))
@@ -422,100 +409,88 @@ def write_chanobs(
 
             # =========== time VARIABLE ===============
             TIME = f.createVariable(
-                varname = "time",
-                datatype = 'int32',
-                dimensions = ("time",),
+                varname="time",
+                datatype="int32",
+                dimensions=("time",),
             )
             TIME[:] = date2num(
-                gage_flow_time,
-                units = "minutes since 1970-01-01 00:00:00 UTC",
-                calendar = "gregorian"
+                gage_flow_time, units="minutes since 1970-01-01 00:00:00 UTC", calendar="gregorian"
             )
-            f['time'].setncatts(
+            f["time"].setncatts(
                 {
-                    'long_name': 'model initialization time',
-                    'standard_name': 'forecast_reference_time',
-                    'units': 'minutes since 1970-01-01 00:00:00 UTC'
+                    "long_name": "model initialization time",
+                    "standard_name": "forecast_reference_time",
+                    "units": "minutes since 1970-01-01 00:00:00 UTC",
                 }
             )
 
             # =========== reference_time VARIABLE ===============
             REF_TIME = f.createVariable(
-                varname = "reference_time",
-                datatype = 'int32',
-                dimensions = ("reference_time",),
+                varname="reference_time",
+                datatype="int32",
+                dimensions=("reference_time",),
             )
             REF_TIME[:] = date2num(
-                t0,
-                units = "minutes since 1970-01-01 00:00:00 UTC",
-                calendar = "gregorian"
+                t0, units="minutes since 1970-01-01 00:00:00 UTC", calendar="gregorian"
             )
-            f['reference_time'].setncatts(
+            f["reference_time"].setncatts(
                 {
-                    'long_name': 'vaild output time',
-                    'standard_name': 'time',
-                    'units': 'minutes since 1970-01-01 00:00:00 UTC'
+                    "long_name": "vaild output time",
+                    "standard_name": "time",
+                    "units": "minutes since 1970-01-01 00:00:00 UTC",
                 }
             )
 
             # =========== feature_id VARIABLE ===============
             FEATURE_ID = f.createVariable(
-                varname = "feature_id",
-                datatype = 'int64',
-                dimensions = ("feature_id",),
+                varname="feature_id",
+                datatype="int64",
+                dimensions=("feature_id",),
             )
             FEATURE_ID[:] = gage_feature_id
-            f['feature_id'].setncatts(
+            f["feature_id"].setncatts(
                 {
-                    'long_name': 'Reach ID',
-                    'comment': 'NHDPlusv2 ComIDs within CONUS, arbitrary Reach IDs outside of CONUS',
-                    'cf_role:': 'timeseries_id'
+                    "long_name": "Reach ID",
+                    "comment": "NHDPlusv2 ComIDs within CONUS, arbitrary Reach IDs outside of CONUS",
+                    "cf_role:": "timeseries_id",
                 }
             )
 
             # =========== streamflow VARIABLE ===============
             y = f.createVariable(
-                    varname = "streamflow",
-                    datatype = "f4",
-                    dimensions = ("time", "feature_id"),
-                    fill_value = np.nan
-                )
+                varname="streamflow",
+                datatype="f4",
+                dimensions=("time", "feature_id"),
+                fill_value=np.nan,
+            )
             y[:] = gage_flow_data.T
             # =========== GLOBAL ATTRIBUTES ===============
             f.setncatts(
                 {
-                    'model_initialization_time': t0.strftime('%Y-%m-%d_%H:%M:%S'),
-                    'model_output_valid_time': gage_flow_time[0].strftime('%Y-%m-%d_%H:%M:%S'),
+                    "model_initialization_time": t0.strftime("%Y-%m-%d_%H:%M:%S"),
+                    "model_output_valid_time": gage_flow_time[0].strftime("%Y-%m-%d_%H:%M:%S"),
                 }
             )
 
     else:
-
         # append data to chanobs file
         # open netCDF4 Dataset in r+ mode to append
-        with netCDF4.Dataset(
-            filename = chanobs_filepath,
-            mode = 'r+',
-            format = "NETCDF4"
-        ) as f:
-
+        with netCDF4.Dataset(filename=chanobs_filepath, mode="r+", format="NETCDF4") as f:
             # =========== format variable data to be appended ===============
             time_new = date2num(
-                gage_flow_time,
-                units = "minutes since 1970-01-01 00:00:00 UTC",
-                calendar = "gregorian"
+                gage_flow_time, units="minutes since 1970-01-01 00:00:00 UTC", calendar="gregorian"
             )
 
             flow_new = gage_flow_data.T
 
             # =========== append new flow data ===============
-            tshape = len(f.dimensions['time'])
-            f['time'][tshape:(tshape+nts)] = time_new
-            f['streamflow'][tshape:(tshape+nts)] = flow_new
+            tshape = len(f.dimensions["time"])
+            f["time"][tshape : (tshape + nts)] = time_new
+            f["streamflow"][tshape : (tshape + nts)] = flow_new
 
-def write_to_netcdf(f, variables, datatype = 'f4'):
 
-    '''
+def write_to_netcdf(f, variables, datatype="f4"):
+    """
     Quickly append or overwrite variable data in NetCDF files by leveraging the netCDF4 library.
     For additional documentation on netCDF4: https://unidata.github.io/netcdf4-python/#version-157
 
@@ -535,16 +510,10 @@ def write_to_netcdf(f, variables, datatype = 'f4'):
 
     NOTES:
     - the netCDF files we want to append/edit must have write permission!
-    '''
+    """
 
-    with netCDF4.Dataset(
-        filename = f,
-        mode = 'r+',
-        format = "NETCDF4"
-    ) as ds:
-
+    with netCDF4.Dataset(filename=f, mode="r+", format="NETCDF4") as ds:
         for varname, (vardata, dim, attrs) in variables.items():
-
             # check that dimension exists
             if dim not in list(ds.dimensions.keys()):
                 LOG.error("The dimensions %s could not be found in file %s" % (dim, f))
@@ -554,25 +523,23 @@ def write_to_netcdf(f, variables, datatype = 'f4'):
             # check that dimension size and variable data size agree
             dim_size = ds.dimensions[dim].size
             if vardata.size != dim_size:
-                LOG.error("Cannot write data of size %d to variable with dimension size of %d" % (vardata.size, dim_size))
+                LOG.error(
+                    "Cannot write data of size %d to variable with dimension size of %d"
+                    % (vardata.size, dim_size)
+                )
                 LOG.error("Aborting writing process for %s. No data were written to this file" % f)
                 return
 
             # check that varname doesn't already exist
             # if it does, then overwrite it
             if varname in list(ds.variables.keys()):
-
                 ds[varname][:] = vardata
 
             # if variable does not exist, create new one
             else:
-
                 # create a new variable
                 y = ds.createVariable(
-                    varname = varname,
-                    datatype = datatype,
-                    dimensions = (dim,),
-                    fill_value = np.nan
+                    varname=varname, datatype=datatype, dimensions=(dim,), fill_value=np.nan
                 )
 
                 # write data to new variable
@@ -581,45 +548,46 @@ def write_to_netcdf(f, variables, datatype = 'f4'):
                 # include variable attributes
                 ds[varname].setncatts(attrs)
 
+
 def write_chrtout(
     flowveldepth,
     chrtout_files,
     qts_subdivisions,
     cpu_pool,
 ):
-
     LOG.debug("Starting the write_chrtout function")
 
     # count the number of simulated timesteps
-    nsteps = len(flowveldepth.loc[:,::3].columns)
+    nsteps = len(flowveldepth.loc[:, ::3].columns)
 
     # determine how many files to write results out to
     nfiles_to_write = int(np.floor(nsteps / qts_subdivisions))
 
     if nfiles_to_write >= 1:
-
         LOG.debug("%d CHRTOUT files will be written." % (nfiles_to_write))
         LOG.debug("Extracting flow DataFrame on qts_subdivisions from FVD DataFrame")
         start = time.time()
 
-        flow = flowveldepth.loc[:, ::3].iloc[:, qts_subdivisions-1::qts_subdivisions]
+        flow = flowveldepth.loc[:, ::3].iloc[:, qts_subdivisions - 1 :: qts_subdivisions]
 
         LOG.debug("Extracting flow DataFrame took %s seconds." % (time.time() - start))
 
-        varname = 'streamflow_troute'
-        dim = 'feature_id'
+        varname = "streamflow_troute"
+        dim = "feature_id"
         attrs = {
-            'long_name': 'River Flow',
-            'units': 'm3 s-1',
-            'coordinates': 'latitude longitude',
-            'grid_mapping': 'crs',
-            'valid_range': np.array([0,50000], dtype = 'float32'),
+            "long_name": "River Flow",
+            "units": "m3 s-1",
+            "coordinates": "latitude longitude",
+            "grid_mapping": "crs",
+            "valid_range": np.array([0, 50000], dtype="float32"),
         }
 
-        LOG.debug("Reindexing the flow DataFrame to align with `feature_id` dimension in CHRTOUT files")
+        LOG.debug(
+            "Reindexing the flow DataFrame to align with `feature_id` dimension in CHRTOUT files"
+        )
         start = time.time()
 
-        with xr.open_dataset(chrtout_files[0],engine='netcdf4') as ds:
+        with xr.open_dataset(chrtout_files[0], engine="netcdf4") as ds:
             newindex = ds.feature_id.values
 
         qtrt = flow.reindex(newindex).to_numpy().astype("float32")
@@ -630,32 +598,28 @@ def write_chrtout(
         start = time.time()
         try:
             with Parallel(n_jobs=cpu_pool) as parallel:
-
                 jobs = []
                 for i, f in enumerate(chrtout_files[:nfiles_to_write]):
-
                     s = time.time()
-                    variables = {
-                        varname: (qtrt[:,i], dim, attrs)
-                    }
+                    variables = {varname: (qtrt[:, i], dim, attrs)}
                     jobs.append(delayed(write_to_netcdf)(f, variables))
-                    #LOG.debug("Writing %s." % (f))
+                    # LOG.debug("Writing %s." % (f))
 
                 parallel(jobs)
         except:
             for i, f in enumerate(chrtout_files[:nfiles_to_write]):
                 s = time.time()
-                variables = {
-                    varname: (qtrt[:i], dim, attrs)
-                }
+                variables = {varname: (qtrt[:i], dim, attrs)}
                 write_to_netcdf(f, variables)
                 LOG.debug("Writing %s." % (f))
 
-        LOG.debug("Writing t-route data to %d CHRTOUT files took %s seconds." % (nfiles_to_write, (time.time() - start)))
+        LOG.debug(
+            "Writing t-route data to %d CHRTOUT files took %s seconds."
+            % (nfiles_to_write, (time.time() - start))
+        )
 
     else:
         LOG.debug("Simulation duration is less than one qts_subdivision. No CHRTOUT files written.")
-
 
 
 def get_attribute(nc_file, attribute):
@@ -665,22 +629,23 @@ def get_attribute(nc_file, attribute):
     with xr.open_dataset(nc_file) as xd:
         return xd.attrs[attribute]
 
+
 def build_lastobs_df(
-        lastobsfile,
-        crosswalk_file,
-        time_shift           = 0,
-        crosswalk_gage_field = "gages",
-        crosswalk_link_field = "link",
-        obs_discharge_id     = "discharge",
-        time_idx_id          = "timeInd",
-        station_id           = "stationId",
-        station_idx_id       = "stationIdInd",
-        time_id              = "time",
-        discharge_nan        = -9999.0,
-        ref_t_attr_id        = "modelTimeAtOutput",
-        route_link_idx       = "feature_id",
-    ):
-    '''
+    lastobsfile,
+    crosswalk_file,
+    time_shift=0,
+    crosswalk_gage_field="gages",
+    crosswalk_link_field="link",
+    obs_discharge_id="discharge",
+    time_idx_id="timeInd",
+    station_id="stationId",
+    station_idx_id="stationIdInd",
+    time_id="time",
+    discharge_nan=-9999.0,
+    ref_t_attr_id="modelTimeAtOutput",
+    route_link_idx="feature_id",
+):
+    """
     Constructs a DataFame of "lastobs" data used in streamflow DA routine
     "lastobs" information is just like it sounds. It is the magnitude and
     timing of the last valid observation at each gage in the model domain.
@@ -696,74 +661,75 @@ def build_lastobs_df(
     Notes
     -----
 
-    '''
+    """
 
     # open crosswalking file and construct dataframe relating gageID to segmentID
     with xr.open_dataset(crosswalk_file) as ds:
         gage_list = list(map(bytes.strip, ds[crosswalk_gage_field].values))
         gage_mask = list(map(bytes.isalnum, gage_list))
-        gage_da   = list(map(bytes.strip, ds[crosswalk_gage_field][gage_mask].values))
+        gage_da = list(map(bytes.strip, ds[crosswalk_gage_field][gage_mask].values))
         data_var_dict = {
             crosswalk_gage_field: gage_da,
             crosswalk_link_field: ds[crosswalk_link_field].values[gage_mask],
         }
-        gage_link_df = pd.DataFrame(data = data_var_dict).set_index([crosswalk_gage_field])
+        gage_link_df = pd.DataFrame(data=data_var_dict).set_index([crosswalk_gage_field])
 
     with xr.open_dataset(lastobsfile) as ds:
-
-        gages    = np.char.strip(ds[station_id].values)
+        gages = np.char.strip(ds[station_id].values)
 
         ref_time = datetime.strptime(ds.attrs[ref_t_attr_id], "%Y-%m-%d_%H:%M:%S")
 
         last_ts = ds[time_idx_id].values[-1]
 
         df_discharge = (
-            ds[obs_discharge_id].to_dataframe().                 # discharge to MultiIndex DF
-            replace(to_replace = discharge_nan, value = np.nan). # replace null values with nan
-            unstack(level = 0)                                   # unstack to single Index (timeInd)
+            ds[obs_discharge_id]
+            .to_dataframe()
+            .  # discharge to MultiIndex DF
+            replace(to_replace=discharge_nan, value=np.nan)
+            .  # replace null values with nan
+            unstack(level=0)  # unstack to single Index (timeInd)
         )
 
         last_obs_index = (
-            df_discharge.
-            apply(pd.Series.last_valid_index).                   # index of last non-nan value, each gage
-            to_numpy()                                           # to numpy array
+            df_discharge.apply(
+                pd.Series.last_valid_index
+            ).  # index of last non-nan value, each gage
+            to_numpy()  # to numpy array
         )
-        last_obs_index = np.nan_to_num(last_obs_index, nan = last_ts).astype(int)
+        last_obs_index = np.nan_to_num(last_obs_index, nan=last_ts).astype(int)
 
         last_observations = []
-        lastobs_times     = []
+        lastobs_times = []
         for i, idx in enumerate(last_obs_index):
-            last_observations.append(df_discharge.iloc[idx,i])
-            lastobs_times.append(ds.time.values[i, idx].decode('utf-8'))
+            last_observations.append(df_discharge.iloc[idx, i])
+            lastobs_times.append(ds.time.values[i, idx].decode("utf-8"))
 
         last_observations = np.array(last_observations)
-        lastobs_times     = pd.to_datetime(
-            np.array(lastobs_times),
-            format="%Y-%m-%d_%H:%M:%S",
-            errors = 'coerce'
+        lastobs_times = pd.to_datetime(
+            np.array(lastobs_times), format="%Y-%m-%d_%H:%M:%S", errors="coerce"
         )
 
         lastobs_times = (lastobs_times - ref_time).total_seconds()
         lastobs_times = lastobs_times - time_shift
 
     data_var_dict = {
-        'gages'               : gages,
-        'time_since_lastobs'  : lastobs_times,
-        'lastobs_discharge'   : last_observations
+        "gages": gages,
+        "time_since_lastobs": lastobs_times,
+        "lastobs_discharge": last_observations,
     }
 
     lastobs_df = (
-        pd.DataFrame(data = data_var_dict).
-        set_index('gages').
-        join(gage_link_df, how = 'inner').
-        reset_index().
-        set_index(crosswalk_link_field)
+        pd.DataFrame(data=data_var_dict)
+        .set_index("gages")
+        .join(gage_link_df, how="inner")
+        .reset_index()
+        .set_index(crosswalk_link_field)
     )
     lastobs_df = lastobs_df[
         [
-            'gages',
-            'time_since_lastobs',
-            'lastobs_discharge',
+            "gages",
+            "time_since_lastobs",
+            "lastobs_discharge",
         ]
     ]
 
@@ -813,55 +779,44 @@ def get_usgs_df_from_csv(usgs_csv, routelink_subset_file, index_col="link"):
 
 
 def _read_timeslice_file(f):
-
-    with netCDF4.Dataset(
-        filename = f,
-        mode = 'r',
-        format = "NETCDF4"
-    ) as ds:
-
-        discharge = ds.variables['discharge'][:].filled(fill_value = np.nan)
-        stns      = ds.variables['stationId'][:].filled(fill_value = np.nan)
-        t         = ds.variables['time'][:].filled(fill_value = np.nan)
-        qual      = ds.variables['discharge_quality'][:].filled(fill_value = np.nan)
+    with netCDF4.Dataset(filename=f, mode="r", format="NETCDF4") as ds:
+        discharge = ds.variables["discharge"][:].filled(fill_value=np.nan)
+        stns = ds.variables["stationId"][:].filled(fill_value=np.nan)
+        t = ds.variables["time"][:].filled(fill_value=np.nan)
+        qual = ds.variables["discharge_quality"][:].filled(fill_value=np.nan)
 
     if discharge.size != 0 and stns.size != 0 and t.size != 0:
-        stationId = np.apply_along_axis(''.join, 1, stns.astype(str))
-        time_str = np.apply_along_axis(''.join, 1, t.astype(str))
+        stationId = np.apply_along_axis("".join, 1, stns.astype(str))
+        time_str = np.apply_along_axis("".join, 1, t.astype(str))
         stationId = np.char.strip(stationId)
 
-        timeslice_observations = (pd.DataFrame({
-                                    'stationId' : stationId,
-                                    'datetime'  : time_str,
-                                    'discharge' : discharge
-                                }).
-                                set_index(['stationId', 'datetime']).
-                                unstack(1, fill_value = np.nan)['discharge'])
+        timeslice_observations = (
+            pd.DataFrame({"stationId": stationId, "datetime": time_str, "discharge": discharge})
+            .set_index(["stationId", "datetime"])
+            .unstack(1, fill_value=np.nan)["discharge"]
+        )
 
-        observation_quality = (pd.DataFrame({
-                                    'stationId' : stationId,
-                                    'datetime'  : time_str,
-                                    'quality'   : qual/100
-                                }).
-                                set_index(['stationId', 'datetime']).
-                                unstack(1, fill_value = np.nan)['quality'])
+        observation_quality = (
+            pd.DataFrame({"stationId": stationId, "datetime": time_str, "quality": qual / 100})
+            .set_index(["stationId", "datetime"])
+            .unstack(1, fill_value=np.nan)["quality"]
+        )
     else:
         timeslice_observations = pd.DataFrame()
         observation_quality = pd.DataFrame()
     return timeslice_observations, observation_quality
 
-def _interpolate_one(df, interpolation_limit, frequency):
 
-    interp_out = (df.resample('min').
-                        interpolate(
-                            limit = interpolation_limit,
-                            limit_direction = 'both'
-                        ).
-                        resample(frequency).
-                        asfreq().
-                        to_numpy()
-                       )
+def _interpolate_one(df, interpolation_limit, frequency):
+    interp_out = (
+        df.resample("min")
+        .interpolate(limit=interpolation_limit, limit_direction="both")
+        .resample(frequency)
+        .asfreq()
+        .to_numpy()
+    )
     return interp_out
+
 
 def get_obs_from_timeslices(
     crosswalk_df,
@@ -928,7 +883,7 @@ def get_obs_from_timeslices(
 
     all_empty = all(df.empty for tuple in timeslice_dataframes for df in tuple)
     if all_empty:
-        LOG.debug(f'{crosswalk_gage_field} DataFrames is empty, check timeslice files.')
+        LOG.debug(f"{crosswalk_gage_field} DataFrames is empty, check timeslice files.")
         return pd.DataFrame()
 
     # create lists of observations and obs quality dataframes returned
@@ -937,75 +892,76 @@ def get_obs_from_timeslices(
     timeslice_qual_frames = []
     for d in timeslice_dataframes:
         timeslice_obs_frames.append(d[0])  # TimeSlice gage observation
-        timeslice_qual_frames.append(d[1]) # TimeSlice observation qual
+        timeslice_qual_frames.append(d[1])  # TimeSlice observation qual
 
     # concatenate dataframes
-    timeslice_obs_df  = pd.concat(timeslice_obs_frames, axis = 1)
-    timeslice_qual_df = pd.concat(timeslice_qual_frames, axis = 1)
+    timeslice_obs_df = pd.concat(timeslice_obs_frames, axis=1)
+    timeslice_qual_df = pd.concat(timeslice_qual_frames, axis=1)
 
     # Link <> gage crosswalk data
     df = crosswalk_df.reset_index()
-    df[crosswalk_gage_field] = np.asarray(df[crosswalk_gage_field]).astype('<U15')
+    df[crosswalk_gage_field] = np.asarray(df[crosswalk_gage_field]).astype("<U15")
     df = df.set_index(crosswalk_gage_field)
     df.index = df.index.str.strip()
     # join crosswalk data with timeslice data, indexed on crosswalk destination field
-    observation_df = (df.join(timeslice_obs_df).
-               reset_index().
-               set_index(crosswalk_dest_field).
-               select_dtypes(include='number'))
+    observation_df = (
+        df.join(timeslice_obs_df)
+        .reset_index()
+        .set_index(crosswalk_dest_field)
+        .select_dtypes(include="number")
+    )
 
-    observation_qual_df = (df.join(timeslice_qual_df).
-               reset_index().
-               set_index(crosswalk_dest_field).
-               select_dtypes(include='number'))
+    observation_qual_df = (
+        df.join(timeslice_qual_df)
+        .reset_index()
+        .set_index(crosswalk_dest_field)
+        .select_dtypes(include="number")
+    )
 
     # ---- Laugh testing ------
     # screen-out erroneous qc flags
-    observation_qual_df = (observation_qual_df.
-                           mask(observation_qual_df < 0, np.nan).
-                           mask(observation_qual_df > 1, np.nan)
-                          )
+    observation_qual_df = observation_qual_df.mask(observation_qual_df < 0, np.nan).mask(
+        observation_qual_df > 1, np.nan
+    )
 
     # screen-out poor quality flow observations
-    observation_df = (observation_df.
-                      mask(observation_qual_df < qc_threshold, np.nan).
-                      mask(observation_df <= 0, np.nan)
-                     )
+    observation_df = observation_df.mask(observation_qual_df < qc_threshold, np.nan).mask(
+        observation_df <= 0, np.nan
+    )
 
     # ---- Interpolate USGS observations to the input frequency (frequency_secs)
-    observation_df_T = observation_df.transpose()             # transpose, making time the index
+    observation_df_T = observation_df.transpose()  # transpose, making time the index
     observation_df_T.index = pd.to_datetime(
-        observation_df_T.index, format = "%Y-%m-%d_%H:%M:%S"  # index variable as type datetime
+        observation_df_T.index,
+        format="%Y-%m-%d_%H:%M:%S",  # index variable as type datetime
     )
 
     # specify resampling frequency
-    frequency = str(int(frequency_secs/60))+"min"
+    frequency = str(int(frequency_secs / 60)) + "min"
 
     # interpolate and resample frequency
     buffer_df = observation_df_T.resample(frequency).asfreq()
     with Parallel(n_jobs=cpu_pool) as parallel:
-
         jobs = []
         interp_chunks = ()
         step = 200
         for a, i in enumerate(range(0, len(observation_df_T.columns), step)):
-
             start = i
-            if (i+step-1) < buffer_df.shape[1]:
-                stop = i+(step)
+            if (i + step - 1) < buffer_df.shape[1]:
+                stop = i + (step)
             else:
                 stop = buffer_df.shape[1]
 
             jobs.append(
-                delayed(_interpolate_one)(observation_df_T.iloc[:,start:stop], interpolation_limit, frequency)
+                delayed(_interpolate_one)(
+                    observation_df_T.iloc[:, start:stop], interpolation_limit, frequency
+                )
             )
 
         interp_chunks = parallel(jobs)
 
     observation_df_T = pd.DataFrame(
-        data = np.concatenate(interp_chunks, axis = 1),
-        columns = buffer_df.columns,
-        index = buffer_df.index
+        data=np.concatenate(interp_chunks, axis=1), columns=buffer_df.columns, index=buffer_df.index
     )
 
     # re-transpose, making link the index
@@ -1017,8 +973,8 @@ def get_obs_from_timeslices(
 def get_GL_obs_from_timeslices(
     crosswalk_df,
     timeslice_files,
-    crosswalk_gage_field='gages',
-    crosswalk_dest_field='link',
+    crosswalk_gage_field="gages",
+    crosswalk_dest_field="link",
     qc_threshold=1,
     cpu_pool=1,
 ):
@@ -1058,7 +1014,7 @@ def get_GL_obs_from_timeslices(
 
     all_empty = all(df.empty for tuple in timeslice_dataframes for df in tuple)
     if all_empty:
-        LOG.debug(f'{crosswalk_gage_field} DataFrames is empty, check timeslice files.')
+        LOG.debug(f"{crosswalk_gage_field} DataFrames is empty, check timeslice files.")
         return pd.DataFrame()
 
     # create lists of observations and obs quality dataframes returned
@@ -1067,39 +1023,41 @@ def get_GL_obs_from_timeslices(
     timeslice_qual_frames = []
     for d in timeslice_dataframes:
         timeslice_obs_frames.append(d[0])  # TimeSlice gage observation
-        timeslice_qual_frames.append(d[1]) # TimeSlice observation qual
+        timeslice_qual_frames.append(d[1])  # TimeSlice observation qual
 
     # concatenate dataframes
-    timeslice_obs_df  = pd.concat(timeslice_obs_frames, axis = 1)
-    timeslice_qual_df = pd.concat(timeslice_qual_frames, axis = 1)
+    timeslice_obs_df = pd.concat(timeslice_obs_frames, axis=1)
+    timeslice_qual_df = pd.concat(timeslice_qual_frames, axis=1)
 
     # Link <> gage crosswalk data
     df = crosswalk_df.reset_index()
     df = df.set_index(crosswalk_gage_field)
     df.index = df.index.str.strip()
     # join crosswalk data with timeslice data, indexed on crosswalk destination field
-    observation_df = (df.join(timeslice_obs_df).
-               reset_index().
-               set_index(crosswalk_dest_field).
-               select_dtypes(include='number'))
+    observation_df = (
+        df.join(timeslice_obs_df)
+        .reset_index()
+        .set_index(crosswalk_dest_field)
+        .select_dtypes(include="number")
+    )
 
-    observation_qual_df = (df.join(timeslice_qual_df).
-               reset_index().
-               set_index(crosswalk_dest_field).
-               select_dtypes(include='number'))
+    observation_qual_df = (
+        df.join(timeslice_qual_df)
+        .reset_index()
+        .set_index(crosswalk_dest_field)
+        .select_dtypes(include="number")
+    )
 
     # ---- Laugh testing ------
     # screen-out erroneous qc flags
-    observation_qual_df = (observation_qual_df.
-                           mask(observation_qual_df < 0, np.nan).
-                           mask(observation_qual_df > 1, np.nan)
-                          )
+    observation_qual_df = observation_qual_df.mask(observation_qual_df < 0, np.nan).mask(
+        observation_qual_df > 1, np.nan
+    )
 
     # screen-out poor quality flow observations
-    observation_df = (observation_df.
-                      mask(observation_qual_df < qc_threshold, np.nan).
-                      mask(observation_df <= 0, np.nan)
-                     )
+    observation_df = observation_df.mask(observation_qual_df < qc_threshold, np.nan).mask(
+        observation_df <= 0, np.nan
+    )
 
     return observation_df
 
@@ -1163,13 +1121,11 @@ def get_channel_restart_from_wrf_hydro(
     """
 
     with xr.open_dataset(crosswalk_file) as xds:
-
         xdf = xds[channel_ID_column].to_dataframe()
     xdf = xdf.reset_index()
     xdf = xdf[[channel_ID_column]]
 
     with xr.open_dataset(channel_initial_states_file) as qds:
-
         if depth_column in qds:
             qdf2 = qds[[us_flow_column, ds_flow_column, depth_column]].to_dataframe()
         else:
@@ -1195,10 +1151,8 @@ def get_channel_restart_from_wrf_hydro(
     return q_initial_states
 
 
-def read_lite_restart(
-    file
-):
-    '''
+def read_lite_restart(file):
+    """
     Open lite restart pickle files. Can open either waterbody_restart or channel_restart
 
     Arguments
@@ -1209,24 +1163,19 @@ def read_lite_restart(
     ----------
         df (DataFrame): restart states
         t0 (datetime): restart datetime
-    '''
+    """
 
     # open pickle file to pandas DataFrame
     df = pd.read_pickle(pathlib.Path(file))
 
     # extract restart time as datetime object
-    t0 = df['time'].iloc[0].to_pydatetime()
+    t0 = df["time"].iloc[0].to_pydatetime()
 
-    return df.drop(columns = 'time') , t0
+    return df.drop(columns="time"), t0
 
 
-def write_lite_restart(
-    q0,
-    waterbodies_df,
-    t0,
-    restart_parameters
-):
-    '''
+def write_lite_restart(q0, waterbodies_df, t0, restart_parameters):
+    """
     Save initial conditions dataframes as pickle files
 
     Arguments
@@ -1239,34 +1188,45 @@ def write_lite_restart(
     Returns
     -----------
 
-    '''
+    """
 
-    output_directory = restart_parameters.get('lite_restart_output_directory', None)
+    output_directory = restart_parameters.get("lite_restart_output_directory", None)
     if output_directory:
-
         # create pathlib object for output directory
         output_path = pathlib.Path(output_directory)
 
         # create restart filenames
         t0_str = t0.strftime("%Y%m%d%H%M")
-        channel_restart_filename = 'channel_restart_'+t0_str
-        waterbody_restart_filename = 'waterbody_restart_'+t0_str
+        channel_restart_filename = "channel_restart_" + t0_str
+        waterbody_restart_filename = "waterbody_restart_" + t0_str
 
         q0_out = q0.copy()
-        q0_out['time'] = t0
+        q0_out["time"] = t0
         q0_out.to_pickle(pathlib.Path.joinpath(output_path, channel_restart_filename))
-        LOG.debug('Dropped lite channel restart file %s' % pathlib.Path.joinpath(output_path, channel_restart_filename))
+        LOG.debug(
+            "Dropped lite channel restart file %s"
+            % pathlib.Path.joinpath(output_path, channel_restart_filename)
+        )
 
         if not waterbodies_df.empty:
-            wbody_initial_states = waterbodies_df.loc[:,['qd0','h0']]
-            wbody_initial_states['time'] = t0
-            wbody_initial_states.to_pickle(pathlib.Path.joinpath(output_path, waterbody_restart_filename))
-            LOG.debug('Dropped lite waterbody restart file %s' % pathlib.Path.joinpath(output_path, channel_restart_filename))
+            wbody_initial_states = waterbodies_df.loc[:, ["qd0", "h0"]]
+            wbody_initial_states["time"] = t0
+            wbody_initial_states.to_pickle(
+                pathlib.Path.joinpath(output_path, waterbody_restart_filename)
+            )
+            LOG.debug(
+                "Dropped lite waterbody restart file %s"
+                % pathlib.Path.joinpath(output_path, channel_restart_filename)
+            )
         else:
-            LOG.debug('No lite waterbody restart file dropped becuase waterbodies are either turned off or do not exist in this domain.')
+            LOG.debug(
+                "No lite waterbody restart file dropped becuase waterbodies are either turned off or do not exist in this domain."
+            )
 
     else:
-        LOG.error("Not writing lite restart files. No lite_restart_output_directory variable was not specified in configuration file.")
+        LOG.error(
+            "Not writing lite restart files. No lite_restart_output_directory variable was not specified in configuration file."
+        )
 
 
 def write_hydro_rst(
@@ -1306,9 +1266,9 @@ def write_hydro_rst(
     troute_dt = np.timedelta64(dt_troute, "s")
     troute_timestamps = (t0_array + troute_dt) + np.arange(nts_troute) * troute_dt
 
-    LOG.debug('t-route intialized at %s' % (np.datetime_as_string(t0_array)))
-    LOG.debug('t-route first simulated time at %s' % (np.datetime_as_string(troute_timestamps[0])))
-    LOG.debug('t-route final simulated time at %s' % (np.datetime_as_string(troute_timestamps[-1])))
+    LOG.debug("t-route intialized at %s" % (np.datetime_as_string(t0_array)))
+    LOG.debug("t-route first simulated time at %s" % (np.datetime_as_string(troute_timestamps[0])))
+    LOG.debug("t-route final simulated time at %s" % (np.datetime_as_string(troute_timestamps[-1])))
 
     # check the Restart_Time of each restart file in the restart directory
     LOG.debug("Looking for restart files that need to be appended")
@@ -1316,7 +1276,6 @@ def write_hydro_rst(
     files_to_append = []
     write_index = []
     for f in restart_files:
-
         # open the restart file and get the Restart_Time attribute
         with xr.open_dataset(f) as ds:
             t = np.array(ds.Restart_Time.replace("_", " "), dtype=np.datetime64)
@@ -1327,14 +1286,15 @@ def write_hydro_rst(
             files_to_append.append(f)
             write_index.append(a[0])
 
-    LOG.debug('Found %d restart files to append.' % len(files_to_append))
-    LOG.debug('It took %s seconds to find restart files that need to be appended' % (time.time() - start))
+    LOG.debug("Found %d restart files to append." % len(files_to_append))
+    LOG.debug(
+        "It took %s seconds to find restart files that need to be appended" % (time.time() - start)
+    )
 
     if len(files_to_append) == 0:
         return
-    else: # contune on to append restart files
-
-        LOG.debug('Retrieving index ordering used restart files')
+    else:  # contune on to append restart files
+        LOG.debug("Retrieving index ordering used restart files")
         start = time.time()
         # extract ordered feature_ids from crosswalk file
         # TODO: Find out why we re-index this dataset when it
@@ -1343,21 +1303,24 @@ def write_hydro_rst(
             xdf = xds[channel_ID_column].to_dataframe()
         xdf = xdf.reset_index()
         xdf = xdf[[channel_ID_column]]
-        LOG.debug('Retrieving index ordering took %s seconds' % (time.time() - start))
+        LOG.debug("Retrieving index ordering took %s seconds" % (time.time() - start))
 
-        LOG.debug('Begining the restart writing process')
+        LOG.debug("Begining the restart writing process")
         start = time.time()
         for i, f in enumerate(files_to_append):
-
-            LOG.debug('Preparing data for- and writing data to- %s' % f)
+            LOG.debug("Preparing data for- and writing data to- %s" % f)
             # extract and reindex depth data
             qtrt = (
-                data.iloc[:,::3]
+                data.iloc[:, ::3]
                 .iloc[:, a[i]]
                 .reindex(xdf.link)
                 .to_numpy()
                 .astype("float32")
-                .reshape(len(xdf.link,))
+                .reshape(
+                    len(
+                        xdf.link,
+                    )
+                )
             )
 
             # extract and reindex depth data
@@ -1367,7 +1330,11 @@ def write_hydro_rst(
                 .reindex(xdf.link)
                 .to_numpy()
                 .astype("float32")
-                .reshape(len(xdf.link,))
+                .reshape(
+                    len(
+                        xdf.link,
+                    )
+                )
             )
 
             # assemble variables dictionary with content to be written out
@@ -1380,7 +1347,8 @@ def write_hydro_rst(
             # append restart data to netcdf restart files
             write_to_netcdf(f, variables)
 
-        LOG.debug('Restart writing process completed in % seconds.' % (time.time() - start))
+        LOG.debug("Restart writing process completed in % seconds." % (time.time() - start))
+
 
 def get_reservoir_restart_from_wrf_hydro(
     waterbody_intial_states_file,
@@ -1448,26 +1416,35 @@ def lastobs_df_output(
     gages,
     lastobs_output_folder=False,
 ):
-
     # join gageIDs to lastobs_df
     lastobs_df = lastobs_df.join(gages)
 
     # timestamp of last simulation timestep
-    modelTimeAtOutput = t0 + timedelta(seconds = nts * dt)
-    modelTimeAtOutput_str = modelTimeAtOutput.strftime('%Y-%m-%d_%H:%M:%S')
+    modelTimeAtOutput = t0 + timedelta(seconds=nts * dt)
+    modelTimeAtOutput_str = modelTimeAtOutput.strftime("%Y-%m-%d_%H:%M:%S")
 
     # timestamp of last observation
     var = [timedelta(seconds=d) for d in lastobs_df.time_since_lastobs.fillna(0)]
     lastobs_timestamp = [modelTimeAtOutput - d for d in var]
-    lastobs_timestamp_str = [d.strftime('%Y-%m-%d_%H:%M:%S') for d in lastobs_timestamp]
-    lastobs_timestamp_str_array = np.asarray(lastobs_timestamp_str,dtype = '|S19').reshape(len(lastobs_timestamp_str),1)
+    lastobs_timestamp_str = [d.strftime("%Y-%m-%d_%H:%M:%S") for d in lastobs_timestamp]
+    lastobs_timestamp_str_array = np.asarray(lastobs_timestamp_str, dtype="|S19").reshape(
+        len(lastobs_timestamp_str), 1
+    )
 
     # create xarray Dataset similarly structured to WRF-generated lastobs netcdf files
     ds = xr.Dataset(
         {
-            "stationId": (["stationIdInd"], lastobs_df["gages"].to_numpy(dtype = '|S15')),
-            "time": (["stationIdInd", "timeInd"], np.asarray(lastobs_timestamp_str_array,dtype = '|S19')),
-            "discharge": (["stationIdInd", "timeInd"], lastobs_df["lastobs_discharge"].to_numpy().reshape(len(lastobs_df["lastobs_discharge"]),1)),
+            "stationId": (["stationIdInd"], lastobs_df["gages"].to_numpy(dtype="|S15")),
+            "time": (
+                ["stationIdInd", "timeInd"],
+                np.asarray(lastobs_timestamp_str_array, dtype="|S19"),
+            ),
+            "discharge": (
+                ["stationIdInd", "timeInd"],
+                lastobs_df["lastobs_discharge"]
+                .to_numpy()
+                .reshape(len(lastobs_df["lastobs_discharge"]), 1),
+            ),
         }
     )
     ds.attrs["modelTimeAtOutput"] = modelTimeAtOutput_str
@@ -1475,23 +1452,16 @@ def lastobs_df_output(
     # write-out LastObs file as netcdf
     if isinstance(lastobs_output_folder, pathlib.Path):
         lastobs_output_folder = str(lastobs_output_folder)
-    output_path = pathlib.Path(lastobs_output_folder + "/nudgingLastObs." + modelTimeAtOutput_str + ".nc").resolve()
+    output_path = pathlib.Path(
+        lastobs_output_folder + "/nudgingLastObs." + modelTimeAtOutput_str + ".nc"
+    ).resolve()
     ds.to_netcdf(str(output_path))
 
-def write_waterbody_netcdf(
-    wbdy_filepath,
-    i_df,
-    q_df,
-    d_df,
-    waterbodies_df,
-    waterbody_types_df,
-    t0,
-    dt,
-    nts,
-    time_index
-):
 
-    '''
+def write_waterbody_netcdf(
+    wbdy_filepath, i_df, q_df, d_df, waterbodies_df, waterbody_types_df, t0, dt, nts, time_index
+):
+    """
     Write results of waterbodies to netcdf.
     Written as one file per time step.
 
@@ -1508,37 +1478,38 @@ def write_waterbody_netcdf(
     Returns
     -------------
 
-    '''
-    i_df.index.name = 'lake_id'
-    i_df.columns = ['i']
+    """
+    i_df.index.name = "lake_id"
+    i_df.columns = ["i"]
     i_df = i_df.sort_index()
-    q_df.index.name = 'lake_id'
-    q_df.columns = ['q']
+    q_df.index.name = "lake_id"
+    q_df.columns = ["q"]
     q_df = q_df.sort_index()
-    d_df.index.name = 'lake_id'
-    d_df.columns = ['d']
+    d_df.index.name = "lake_id"
+    d_df.columns = ["d"]
     d_df = d_df.sort_index()
 
     # array of segment linkIDs at gage locations. Results from these segments will be written
-    waterbodies_df = waterbodies_df[['lat','lon','crs']].sort_index()
-    wbdy_feature_id = waterbodies_df.index.to_numpy(dtype = "int64")
+    waterbodies_df = waterbodies_df[["lat", "lon", "crs"]].sort_index()
+    wbdy_feature_id = waterbodies_df.index.to_numpy(dtype="int64")
 
     # dataframe of waterbody types
     waterbody_types_df = waterbody_types_df.sort_index()
-    wbdy_type = waterbody_types_df.reservoir_type.to_numpy(dtype = 'int32')
+    wbdy_type = waterbody_types_df.reservoir_type.to_numpy(dtype="int32")
 
     # array of simulation time
-    wbdy_time = [t0 + timedelta(seconds = (time_index + 1) * dt)]
+    wbdy_time = [t0 + timedelta(seconds=(time_index + 1) * dt)]
 
     if wbdy_filepath:
-
         # open netCDF4 Dataset in write mode
         with netCDF4.Dataset(
-            filename = str(wbdy_filepath) + '/' + str(wbdy_time[0].strftime('%Y%m%d%H%M')) + '.LAKEOUT.nc',
-            mode = 'w',
-            format = "NETCDF4"
+            filename=str(wbdy_filepath)
+            + "/"
+            + str(wbdy_time[0].strftime("%Y%m%d%H%M"))
+            + ".LAKEOUT.nc",
+            mode="w",
+            format="NETCDF4",
         ) as f:
-
             # =========== DIMENSIONS ===============
             _ = f.createDimension("time", 1)
             _ = f.createDimension("feature_id", len(wbdy_feature_id))
@@ -1548,282 +1519,251 @@ def write_waterbody_netcdf(
 
             # =========== time VARIABLE ===============
             TIME = f.createVariable(
-                varname = "time",
-                datatype = 'int32',
-                dimensions = ("time",),
+                varname="time",
+                datatype="int32",
+                dimensions=("time",),
             )
             TIME[:] = date2num(
-                wbdy_time,
-                units = "minutes since 1970-01-01 00:00:00 UTC",
-                calendar = "gregorian"
+                wbdy_time, units="minutes since 1970-01-01 00:00:00 UTC", calendar="gregorian"
             )
-            f['time'].setncatts(
+            f["time"].setncatts(
                 {
-                    'long_name': 'valid output time',
-                    'standard_name': 'time',
-                    'valid_min': date2num(
-                        t0,
-                        units = "minutes since 1970-01-01 00:00:00 UTC",
-                        calendar = "gregorian"
+                    "long_name": "valid output time",
+                    "standard_name": "time",
+                    "valid_min": date2num(
+                        t0, units="minutes since 1970-01-01 00:00:00 UTC", calendar="gregorian"
                     ),
-                    'valid_max': date2num(
+                    "valid_max": date2num(
                         wbdy_time[0],
-                        units = "minutes since 1970-01-01 00:00:00 UTC",
-                        calendar = "gregorian"
+                        units="minutes since 1970-01-01 00:00:00 UTC",
+                        calendar="gregorian",
                     ),
-                    'units': 'minutes since 1970-01-01T00:00:00+00:00',
-                    'calendar': 'proleptic_gregorian'
+                    "units": "minutes since 1970-01-01T00:00:00+00:00",
+                    "calendar": "proleptic_gregorian",
                 }
             )
 
             # =========== reference_time VARIABLE ===============
             REF_TIME = f.createVariable(
-                varname = "reference_time",
-                datatype = 'int32',
-                dimensions = ("reference_time",),
+                varname="reference_time",
+                datatype="int32",
+                dimensions=("reference_time",),
             )
             REF_TIME[:] = date2num(
-                t0,
-                units = "minutes since 1970-01-01 00:00:00 UTC",
-                calendar = "gregorian"
+                t0, units="minutes since 1970-01-01 00:00:00 UTC", calendar="gregorian"
             )
-            f['reference_time'].setncatts(
+            f["reference_time"].setncatts(
                 {
-                    'long_name': 'model initialization time',
-                    'standard_name': 'forecast_reference_time',
-                    'units': 'minutes since 1970-01-01T00:00:00+00:00',
-                    'calendar': 'proleptic_gregorian'
+                    "long_name": "model initialization time",
+                    "standard_name": "forecast_reference_time",
+                    "units": "minutes since 1970-01-01T00:00:00+00:00",
+                    "calendar": "proleptic_gregorian",
                 }
             )
 
             # =========== feature_id VARIABLE ===============
             FEATURE_ID = f.createVariable(
-                varname = "feature_id",
-                datatype = 'int64',
-                dimensions = ("feature_id",),
+                varname="feature_id",
+                datatype="int64",
+                dimensions=("feature_id",),
             )
             FEATURE_ID[:] = wbdy_feature_id
-            f['feature_id'].setncatts(
-                {
-                    'long_name': 'Lake ComID',
-                    'comment': '',
-                    'cf_role:': 'timeseries_id'
-                }
+            f["feature_id"].setncatts(
+                {"long_name": "Lake ComID", "comment": "", "cf_role:": "timeseries_id"}
             )
 
             # =========== latitude VARIABLE ===============
             LATITUDE = f.createVariable(
-                varname = "latitude",
-                datatype = 'f4',
-                dimensions = ("feature_id",),
-                fill_value = np.nan
+                varname="latitude", datatype="f4", dimensions=("feature_id",), fill_value=np.nan
             )
             LATITUDE[:] = waterbodies_df.lat.tolist()
-            f['latitude'].setncatts(
+            f["latitude"].setncatts(
                 {
-                    'long_name': 'Lake latitude',
-                    'standard_name': 'latitude',
-                    'units': 'degrees_north'
+                    "long_name": "Lake latitude",
+                    "standard_name": "latitude",
+                    "units": "degrees_north",
                 }
             )
 
             # =========== longitude VARIABLE ===============
             LONGITUDE = f.createVariable(
-                varname = "longitude",
-                datatype = 'f4',
-                dimensions = ("feature_id",),
-                fill_value = np.nan
+                varname="longitude", datatype="f4", dimensions=("feature_id",), fill_value=np.nan
             )
             LONGITUDE[:] = waterbodies_df.lon.tolist()
-            f['longitude'].setncatts(
+            f["longitude"].setncatts(
                 {
-                    'long_name': 'Lake longitude',
-                    'standard_name': 'longitude',
-                    'units': 'degrees_east'
+                    "long_name": "Lake longitude",
+                    "standard_name": "longitude",
+                    "units": "degrees_east",
                 }
             )
 
             # =========== reservoir type VARIABLE ===============
             res_type = f.createVariable(
-                    varname = "reservoir_type",
-                    datatype = "i4",
-                    dimensions = ("feature_id")
-                )
+                varname="reservoir_type", datatype="i4", dimensions=("feature_id")
+            )
             res_type[:] = wbdy_type
-            f['reservoir_type'].setncatts(
+            f["reservoir_type"].setncatts(
                 {
-                    'coordinates': 'latitude longitude',
-                    'long_name': 'reservoir_type',
-                    'flag_values': [1, 2, 3, 4],
-                    'flag_meanings': 'Level_pool USGS-persistence USACE-persistence RFC-forecasts'
+                    "coordinates": "latitude longitude",
+                    "long_name": "reservoir_type",
+                    "flag_values": [1, 2, 3, 4],
+                    "flag_meanings": "Level_pool USGS-persistence USACE-persistence RFC-forecasts",
                 }
             )
 
             # =========== crs VARIABLE ===============
-            crs = f.createVariable(
-                    varname = "crs",
-                    datatype = "S1",
-                    dimensions = ()
-                )
-            crs[:] = np.array(waterbodies_df['crs'].iat[0],dtype = '|S1')
-            f['crs'].setncatts(
+            crs = f.createVariable(varname="crs", datatype="S1", dimensions=())
+            crs[:] = np.array(waterbodies_df["crs"].iat[0], dtype="|S1")
+            f["crs"].setncatts(
                 {
-                    'transform_name': 'latitude longitude',
-                    'grid_mapping_name': 'latitude longitude',
-                    'esri_pe_string': 'GEOGCS["GCS_WGS_1984",DATUM["D_WGS_1984",SPHEROID["WGS_1984",6378137.0,298.257223563]],PRIMEM["Greenwich",0.0],UNIT["Degree",0.0174532925199433]];-400 -400 1000000000;-100000 10000;-100000 10000;8.98315284119521E-09;0.001;0.001;IsHighPrecision',
-                    'spatial_ref': 'GEOGCS["GCS_WGS_1984",DATUM["D_WGS_1984",SPHEROID["WGS_1984",6378137.0,298.257223563]],PRIMEM["Greenwich",0.0],UNIT["Degree",0.0174532925199433]];-400 -400 1000000000;-100000 10000;-100000 10000;8.98315284119521E-09;0.001;0.001;IsHighPrecision',
-                    'long_name': 'CRS definition',
-                    'longitude_of_prime_meridian': 0.0,
-                    '_CoordinateAxes': 'latitude longitude',
-                    'semi_major_axis': 6378137.0,
-                    'semi_minor_axis': 6356752.5,
-                    'inverse_flattening': 298.25723
+                    "transform_name": "latitude longitude",
+                    "grid_mapping_name": "latitude longitude",
+                    "esri_pe_string": 'GEOGCS["GCS_WGS_1984",DATUM["D_WGS_1984",SPHEROID["WGS_1984",6378137.0,298.257223563]],PRIMEM["Greenwich",0.0],UNIT["Degree",0.0174532925199433]];-400 -400 1000000000;-100000 10000;-100000 10000;8.98315284119521E-09;0.001;0.001;IsHighPrecision',
+                    "spatial_ref": 'GEOGCS["GCS_WGS_1984",DATUM["D_WGS_1984",SPHEROID["WGS_1984",6378137.0,298.257223563]],PRIMEM["Greenwich",0.0],UNIT["Degree",0.0174532925199433]];-400 -400 1000000000;-100000 10000;-100000 10000;8.98315284119521E-09;0.001;0.001;IsHighPrecision',
+                    "long_name": "CRS definition",
+                    "longitude_of_prime_meridian": 0.0,
+                    "_CoordinateAxes": "latitude longitude",
+                    "semi_major_axis": 6378137.0,
+                    "semi_minor_axis": 6356752.5,
+                    "inverse_flattening": 298.25723,
                 }
             )
 
             # =========== inflow VARIABLE ===============
             inflow = f.createVariable(
-                    varname = "inflow",
-                    datatype = "f4",
-                    dimensions = ("feature_id"),
-                    fill_value = -999900
-                )
+                varname="inflow", datatype="f4", dimensions=("feature_id"), fill_value=-999900
+            )
 
             inflow[:] = i_df.i.tolist()
-            f['inflow'].setncatts(
+            f["inflow"].setncatts(
                 {
-                    'long_name': 'Lake Inflow',
-                    'units': 'm3 s-1',
-                    'grid_mapping': 'crs',
-                    'valid_range': [-1000000,1000000],
-                    'coordinates': 'latitude longitude',
-                    'add_offset': 0.0,
-                    'scale_factor': 0.01,
-                    'missing_value': -999900
+                    "long_name": "Lake Inflow",
+                    "units": "m3 s-1",
+                    "grid_mapping": "crs",
+                    "valid_range": [-1000000, 1000000],
+                    "coordinates": "latitude longitude",
+                    "add_offset": 0.0,
+                    "scale_factor": 0.01,
+                    "missing_value": -999900,
                 }
             )
 
             # =========== outflow VARIABLE ===============
             outflow = f.createVariable(
-                    varname = "outflow",
-                    datatype = "f4",
-                    dimensions = ("feature_id"),
-                    fill_value = np.nan
-                )
+                varname="outflow", datatype="f4", dimensions=("feature_id"), fill_value=np.nan
+            )
             outflow[:] = q_df.q.tolist()
-            f['outflow'].setncatts(
+            f["outflow"].setncatts(
                 {
-                    'long_name': 'Lake Outflow',
-                    'units': 'm3 s-1',
-                    'grid_mapping': 'crs',
-                    'valid_range': [-1000000,1000000],
-                    'coordinates': 'latitude longitude',
-                    'add_offset': 0.0,
-                    'scale_factor': 0.01,
-                    'missing_value': -999900
+                    "long_name": "Lake Outflow",
+                    "units": "m3 s-1",
+                    "grid_mapping": "crs",
+                    "valid_range": [-1000000, 1000000],
+                    "coordinates": "latitude longitude",
+                    "add_offset": 0.0,
+                    "scale_factor": 0.01,
+                    "missing_value": -999900,
                 }
             )
 
             # =========== depth VARIABLE ===============
             depth = f.createVariable(
-                    varname = "water_sfc_elev",
-                    datatype = "f4",
-                    dimensions = ("feature_id"),
-                    fill_value = np.nan
-                )
+                varname="water_sfc_elev",
+                datatype="f4",
+                dimensions=("feature_id"),
+                fill_value=np.nan,
+            )
             depth[:] = d_df.d.tolist()
-            f['water_sfc_elev'].setncatts(
+            f["water_sfc_elev"].setncatts(
                 {
-                    'long_name': 'Water Surface Elevation',
-                    'units': 'm',
-                    'comment': 'If reservoir_type = 4, water_sfc_elev is invalid because this value corresponds only to level pool',
-                    'coordinates': 'latitude longitude'
+                    "long_name": "Water Surface Elevation",
+                    "units": "m",
+                    "comment": "If reservoir_type = 4, water_sfc_elev is invalid because this value corresponds only to level pool",
+                    "coordinates": "latitude longitude",
                 }
             )
 
             # =========== GLOBAL ATTRIBUTES ===============
             f.setncatts(
                 {
-                    'TITLE': 'OUTPUT FROM T-ROUTE',
-                    'featureType': 'timeSeries',
-                    'proj4': '+proj=lcc +units=m +a=6370000.0 +b=6370000.0 +lat_1=30.0 +lat_2=60.0 +lat_0=40.0 +lon_0=-97.0 +x_0=0 +y_0=0 +k_0=1.0 +nadgrids=@',
-                    'model_initialization_time': t0.strftime('%Y-%m-%d_%H:%M:%S'),
-                    'station_dimension': 'lake_id',
-                    'model_output_valid_time': wbdy_time[0].strftime('%Y-%m-%d_%H:%M:%S'),
-                    'model_total_valid_times': nts,
-                    'Conventions': 'CF-1.6',
-                    'code_version': '',
-                    'model_output_type': 'reservoir',
-                    'model_configuration': ''
+                    "TITLE": "OUTPUT FROM T-ROUTE",
+                    "featureType": "timeSeries",
+                    "proj4": "+proj=lcc +units=m +a=6370000.0 +b=6370000.0 +lat_1=30.0 +lat_2=60.0 +lat_0=40.0 +lon_0=-97.0 +x_0=0 +y_0=0 +k_0=1.0 +nadgrids=@",
+                    "model_initialization_time": t0.strftime("%Y-%m-%d_%H:%M:%S"),
+                    "station_dimension": "lake_id",
+                    "model_output_valid_time": wbdy_time[0].strftime("%Y-%m-%d_%H:%M:%S"),
+                    "model_total_valid_times": nts,
+                    "Conventions": "CF-1.6",
+                    "code_version": "",
+                    "model_output_type": "reservoir",
+                    "model_configuration": "",
                 }
             )
 
 
-def write_flowveldepth_csv_pkl(stream_output_directory, file_name,
-                              flow, velocity, depth, nudge_df, timestamps,
-                              t0):
-
+def write_flowveldepth_csv_pkl(
+    stream_output_directory, file_name, flow, velocity, depth, nudge_df, timestamps, t0
+):
     formatted_times = [str(timedelta(seconds=t)) for t in timestamps]
 
     df_list = []
 
     for i in range(len(formatted_times)):
         # Construct a temporary DataFrame for each column set
-        df_temp = pd.DataFrame({
-            't0': str(t0),
-            'time': formatted_times[i],
-            'flow': flow.iloc[:, i],
-            'velocity': velocity.iloc[:, i],
-            'depth': depth.iloc[:, i],
-            'nudge': nudge_df.iloc[:, i]
-        }, index=flow.index)
+        df_temp = pd.DataFrame(
+            {
+                "t0": str(t0),
+                "time": formatted_times[i],
+                "flow": flow.iloc[:, i],
+                "velocity": velocity.iloc[:, i],
+                "depth": depth.iloc[:, i],
+                "nudge": nudge_df.iloc[:, i],
+            },
+            index=flow.index,
+        )
         df_list.append(df_temp)
 
     # Concatenate all temporary DataFrames vertically
     df = pd.concat(df_list)
 
-    df['current_time'] = pd.to_datetime(df['t0']) + pd.to_timedelta(df['time'])
-    df = df[['current_time', 'flow', 'velocity', 'depth', 'nudge']]
+    df["current_time"] = pd.to_datetime(df["t0"]) + pd.to_timedelta(df["time"])
+    df = df[["current_time", "flow", "velocity", "depth", "nudge"]]
 
     # File format handling
-    file_format = file_name.split('.')[-1]
-    if file_format == 'csv':
+    file_format = file_name.split(".")[-1]
+    if file_format == "csv":
         df.to_csv(f"{stream_output_directory}/{file_name}", index=True)
-    elif file_format == 'pkl':
+    elif file_format == "pkl":
         df.to_pickle(f"{stream_output_directory}/{file_name}")
 
-def write_flowveldepth_netcdf(stream_output_directory, file_name,
-                              flow, velocity, depth, nudge_df, timestamps,
-                              t0):
+
+def write_flowveldepth_netcdf(
+    stream_output_directory, file_name, flow, velocity, depth, nudge_df, timestamps, t0
+):
     # Open netCDF4 Dataset in write mode
     with netCDF4.Dataset(
-        filename=f"{stream_output_directory}/{file_name}",
-        mode='w',
-        format='NETCDF4'
+        filename=f"{stream_output_directory}/{file_name}", mode="w", format="NETCDF4"
     ) as ncfile:
-
         # ============ DIMENSIONS ===================
-        _ = ncfile.createDimension('feature_id', len(flow))
-        _ = ncfile.createDimension('time', len(timestamps))
-        max_str_len = max(len(str(x)) for x in flow.index.get_level_values('Type'))
-        _ = ncfile.createDimension('type_strlen', max_str_len)
-        #_ = ncfile.createDimension('gage', gage)
-        #_ = ncfile.createDimension('nudge_timestep', nudge_timesteps)  # Add dimension for nudge time steps
+        _ = ncfile.createDimension("feature_id", len(flow))
+        _ = ncfile.createDimension("time", len(timestamps))
+        max_str_len = max(len(str(x)) for x in flow.index.get_level_values("Type"))
+        _ = ncfile.createDimension("type_strlen", max_str_len)
+        # _ = ncfile.createDimension('gage', gage)
+        # _ = ncfile.createDimension('nudge_timestep', nudge_timesteps)  # Add dimension for nudge time steps
 
         # =========== time VARIABLE ===============
         TIME = ncfile.createVariable(
-            varname = "time",
-            datatype = 'float64',
-            dimensions = ("time",),
-            fill_value = -9999.0
+            varname="time", datatype="float64", dimensions=("time",), fill_value=-9999.0
         )
         TIME[:] = timestamps
-        ncfile['time'].setncatts(
+        ncfile["time"].setncatts(
             {
-                'long_name': 'valid output time',
-                'standard_name': 'time',
-                'units': f'seconds since {t0.strftime("%Y-%m-%d %H:%M:%S")}',
-                'missing_value': -9999.0
+                "long_name": "valid output time",
+                "standard_name": "time",
+                "units": f"seconds since {t0.strftime('%Y-%m-%d %H:%M:%S')}",
+                "missing_value": -9999.0,
                 #'calendar': 'proleptic_gregorian'
             }
         )
@@ -1844,109 +1784,82 @@ def write_flowveldepth_netcdf(stream_output_directory, file_name,
 
         # =========== feature_id VARIABLE ===============
         FEATURE_ID = ncfile.createVariable(
-            varname = "feature_id",
-            datatype = 'int64',
-            dimensions = ("feature_id",),
+            varname="feature_id",
+            datatype="int64",
+            dimensions=("feature_id",),
         )
-        FEATURE_ID[:] = flow.index.get_level_values('featureID')
-        ncfile['feature_id'].setncatts(
+        FEATURE_ID[:] = flow.index.get_level_values("featureID")
+        ncfile["feature_id"].setncatts(
             {
-                'long_name': 'Segment ID',
+                "long_name": "Segment ID",
             }
         )
         # =========== type VARIABLE ===============
         TYPE = ncfile.createVariable(
             varname="type",
-            datatype=f'S{max_str_len}',
+            datatype=f"S{max_str_len}",
             dimensions=("feature_id",),
         )
-        TYPE[:] = np.array(flow.index.get_level_values('Type').astype(str).tolist(), dtype=f'S{max_str_len}')
-        ncfile['type'].setncatts(
+        TYPE[:] = np.array(
+            flow.index.get_level_values("Type").astype(str).tolist(), dtype=f"S{max_str_len}"
+        )
+        ncfile["type"].setncatts(
             {
-                'long_name': 'Type',
+                "long_name": "Type",
             }
         )
 
         # =========== flow VARIABLE ===============
         flow_var = ncfile.createVariable(
-            varname = "flow",
-            datatype = "f4",
-            dimensions = ("feature_id", "time"),
-            fill_value = -9999.0
-            )
+            varname="flow", datatype="f4", dimensions=("feature_id", "time"), fill_value=-9999.0
+        )
 
         flow_var[:] = flow.to_numpy(dtype=np.float32)
-        ncfile['flow'].setncatts(
-            {
-                'long_name': 'Flow',
-                'units': 'm3 s-1',
-                'missing_value': -9999.0
-            }
-        )
+        ncfile["flow"].setncatts({"long_name": "Flow", "units": "m3 s-1", "missing_value": -9999.0})
 
         # =========== velocity VARIABLE ===============
         velocity_var = ncfile.createVariable(
-            varname = "velocity",
-            datatype = "f4",
-            dimensions = ("feature_id", "time"),
-            fill_value = -9999.0
-            )
+            varname="velocity", datatype="f4", dimensions=("feature_id", "time"), fill_value=-9999.0
+        )
         velocity_var[:] = velocity.to_numpy(dtype=np.float32)
-        ncfile['velocity'].setncatts(
-            {
-                'long_name': 'Velocity',
-                'units': 'm/s',
-                'missing_value': -9999.0
-            }
+        ncfile["velocity"].setncatts(
+            {"long_name": "Velocity", "units": "m/s", "missing_value": -9999.0}
         )
 
         # =========== depth VARIABLE ===============
         depth_var = ncfile.createVariable(
-            varname = "depth",
-            datatype = "f4",
-            dimensions = ("feature_id", "time"),
-            fill_value = -9999.0
-            )
-        depth_var[:] = depth.to_numpy(dtype=np.float32)
-        ncfile['depth'].setncatts(
-            {
-                'long_name': 'Depth',
-                'units': 'm',
-                'missing_value': -9999.0
-            }
+            varname="depth", datatype="f4", dimensions=("feature_id", "time"), fill_value=-9999.0
         )
+        depth_var[:] = depth.to_numpy(dtype=np.float32)
+        ncfile["depth"].setncatts({"long_name": "Depth", "units": "m", "missing_value": -9999.0})
 
         # =========== nudge VARIABLE ===============
         nudge = ncfile.createVariable(
-            varname = "nudge",
-            datatype = "f4",
-            dimensions = ("feature_id", "time"),
-            fill_value = -9999.0
-            )
+            varname="nudge", datatype="f4", dimensions=("feature_id", "time"), fill_value=-9999.0
+        )
         nudge[:] = nudge_df.to_numpy(dtype=np.float32)
-        ncfile['nudge'].setncatts(
-            {
-                'long_name': 'Streamflow Nudge Value',
-                'units': 'm3 s-1',
-                'missing_value': -9999.0
-            }
+        ncfile["nudge"].setncatts(
+            {"long_name": "Streamflow Nudge Value", "units": "m3 s-1", "missing_value": -9999.0}
         )
 
         # =========== GLOBAL ATTRIBUTES ===============
         ncfile.setncatts(
             {
-                'TITLE': 'OUTPUT FROM T-ROUTE',
-                'file_reference_time': t0.strftime('%Y-%m-%d_%H:%M:%S'),
-                'code_version': '',
+                "TITLE": "OUTPUT FROM T-ROUTE",
+                "file_reference_time": t0.strftime("%Y-%m-%d_%H:%M:%S"),
+                "code_version": "",
             }
         )
+
+
 def stream_output_mask_reader(stream_output_mask):
     if not stream_output_mask:
         return {}
-    with open(stream_output_mask, 'r') as file:
+    with open(stream_output_mask, "r") as file:
         mask_list = yaml.safe_load(file)
 
     return mask_list
+
 
 def mask_find_seg(mask_list, nexus_dict, poi_crosswalk):
     seg_id = []
@@ -1954,47 +1867,51 @@ def mask_find_seg(mask_list, nexus_dict, poi_crosswalk):
 
     if not mask_list:
         return nex_id, seg_id
-    if 'wb' in mask_list and mask_list['wb']:
-        if 9999 not in mask_list['wb']:
-            seg_id.extend(mask_list['wb'])
+    if "wb" in mask_list and mask_list["wb"]:
+        if 9999 not in mask_list["wb"]:
+            seg_id.extend(mask_list["wb"])
         else:
             seg_id.extend([9999])
 
-    if 'nex' in mask_list and mask_list['nex']:
-        if 9999 in mask_list['nex']:
-
+    if "nex" in mask_list and mask_list["nex"]:
+        if 9999 in mask_list["nex"]:
             for key, val in nexus_dict.items():
-                nex_key = int(key.split('-')[-1])
-                nex_id[nex_key] = [int(v.split('-')[-1]) for v in val]
+                nex_key = int(key.split("-")[-1])
+                nex_id[nex_key] = [int(v.split("-")[-1]) for v in val]
         else:
-            for key in mask_list['nex']:
-                item = f'nex-{key}'
-                nex_id[key] = [int(val.split('-')[-1]) for val in nexus_dict.get(item, [])]
+            for key in mask_list["nex"]:
+                item = f"nex-{key}"
+                nex_id[key] = [int(val.split("-")[-1]) for val in nexus_dict.get(item, [])]
 
     return nex_id, seg_id
 
+
 def updated_flowveldepth(flowveldepth, nex_id, seg_id, mask_list):
     flowveldepth = flowveldepth.copy(deep=True)
-    flowveldepth.index.name = 'featureID'
-    flowveldepth['Type'] = 'wb'
-    flowveldepth.set_index('Type', append=True, inplace=True)
+    flowveldepth.index.name = "featureID"
+    flowveldepth["Type"] = "wb"
+    flowveldepth.set_index("Type", append=True, inplace=True)
 
     def create_mask(ids):
         if 9999 in ids:
-            ids = flowveldepth.index.get_level_values('featureID')
+            ids = flowveldepth.index.get_level_values("featureID")
 
-        masked = (flowveldepth.index.get_level_values('featureID').isin(ids)) & (flowveldepth.index.get_level_values('Type') == 'wb')
+        masked = (flowveldepth.index.get_level_values("featureID").isin(ids)) & (
+            flowveldepth.index.get_level_values("Type") == "wb"
+        )
         return masked
 
     flowveldepth_seg = flowveldepth[create_mask(seg_id)] if seg_id else pd.DataFrame()
 
     if nex_id:
-        nex_df = pd.DataFrame([(nex, wb) for nex, wbs in nex_id.items() for wb in wbs], columns=['nex', 'featureID'])
+        nex_df = pd.DataFrame(
+            [(nex, wb) for nex, wbs in nex_id.items() for wb in wbs], columns=["nex", "featureID"]
+        )
         flowveldepth_reset = flowveldepth.reset_index()
-        merge_flowveldepth_reset = flowveldepth_reset.merge(nex_df, on='featureID', how='left')
+        merge_flowveldepth_reset = flowveldepth_reset.merge(nex_df, on="featureID", how="left")
 
-        merge_flowveldepth_reset = merge_flowveldepth_reset.dropna(subset=['nex'])
-        merge_flowveldepth_reset['nex'] = merge_flowveldepth_reset['nex'].astype(int)
+        merge_flowveldepth_reset = merge_flowveldepth_reset.dropna(subset=["nex"])
+        merge_flowveldepth_reset["nex"] = merge_flowveldepth_reset["nex"].astype(int)
 
         def optimized_v_data(merge_flowveldepth_reset, v_columns):
             # Ensure v_columns is a list
@@ -2002,35 +1919,38 @@ def updated_flowveldepth(flowveldepth, nex_id, seg_id, mask_list):
                 v_columns = [v_columns]
 
             # Calculate the size of each group by 'nex', to find out the duplicate
-            group_sizes = merge_flowveldepth_reset.groupby('nex').size()
+            group_sizes = merge_flowveldepth_reset.groupby("nex").size()
 
             unique_nex = group_sizes[group_sizes == 1].index
             non_unique_nex = group_sizes[group_sizes > 1].index
-            filtered_unique_df = merge_flowveldepth_reset[merge_flowveldepth_reset['nex'].isin(unique_nex)]
-            filtered_non_unique_df = merge_flowveldepth_reset[merge_flowveldepth_reset['nex'].isin(non_unique_nex)]
+            filtered_unique_df = merge_flowveldepth_reset[
+                merge_flowveldepth_reset["nex"].isin(unique_nex)
+            ]
+            filtered_non_unique_df = merge_flowveldepth_reset[
+                merge_flowveldepth_reset["nex"].isin(non_unique_nex)
+            ]
             filtered_non_unique_df.loc[:, v_columns] = np.nan
-            filtered_non_unique_df = filtered_non_unique_df.drop_duplicates(subset=['nex'])
+            filtered_non_unique_df = filtered_non_unique_df.drop_duplicates(subset=["nex"])
 
             combined_df = pd.concat([filtered_unique_df, filtered_non_unique_df])
-            v_data = combined_df.set_index('nex')[v_columns]
+            v_data = combined_df.set_index("nex")[v_columns]
 
             return v_data
 
-
         def optimized_agg(merge_flowveldepth_reset):
             # Identify columns for each operation
-            q_columns = [col for col in merge_flowveldepth_reset.columns if col[1] == 'q']
-            v_columns = [col for col in merge_flowveldepth_reset.columns if col[1] == 'v']
-            d_columns = [col for col in merge_flowveldepth_reset.columns if col[1] == 'd']
+            q_columns = [col for col in merge_flowveldepth_reset.columns if col[1] == "q"]
+            v_columns = [col for col in merge_flowveldepth_reset.columns if col[1] == "v"]
+            d_columns = [col for col in merge_flowveldepth_reset.columns if col[1] == "d"]
 
             # Sum of flowrate columns
-            sum_q = merge_flowveldepth_reset.groupby('nex')[q_columns].sum()
+            sum_q = merge_flowveldepth_reset.groupby("nex")[q_columns].sum()
 
             # Handle velocity in a way that if there are 2 segments coming into one put NaN value
             v_data = optimized_v_data(merge_flowveldepth_reset, v_columns)
 
             # Average depth columns
-            avg_d = merge_flowveldepth_reset.groupby('nex')[d_columns].mean()
+            avg_d = merge_flowveldepth_reset.groupby("nex")[d_columns].mean()
 
             # Combine all results into a single DataFrame
             all_nex_data = pd.concat([sum_q, v_data, avg_d], axis=1)
@@ -2038,10 +1958,10 @@ def updated_flowveldepth(flowveldepth, nex_id, seg_id, mask_list):
             return all_nex_data
 
         all_nex_data = optimized_agg(merge_flowveldepth_reset)
-        all_nex_data.index = all_nex_data.index.rename('featureID')
-        all_nex_data['Type'] = 'nex'
+        all_nex_data.index = all_nex_data.index.rename("featureID")
+        all_nex_data["Type"] = "nex"
         # Set the new 'Type' column as an index
-        all_nex_data = all_nex_data.set_index('Type', append=True)
+        all_nex_data = all_nex_data.set_index("Type", append=True)
 
     else:
         all_nex_data = pd.DataFrame()
@@ -2050,6 +1970,7 @@ def updated_flowveldepth(flowveldepth, nex_id, seg_id, mask_list):
         flowveldepth = pd.concat([flowveldepth_seg, all_nex_data])
 
     return flowveldepth
+
 
 def write_flowveldepth(
     stream_output_directory,
@@ -2061,12 +1982,12 @@ def write_flowveldepth(
     dt,
     stream_output_timediff,
     stream_output_type,
-    stream_output_internal_frequency = 5,
-    cpu_pool = 1,
-    poi_crosswalk = None,
-    nexus_dict= None,
-    ):
-    '''
+    stream_output_internal_frequency=5,
+    cpu_pool=1,
+    poi_crosswalk=None,
+    nexus_dict=None,
+):
+    """
     Write the results of flowveldepth and nudge to netcdf- break.
     Arguments
     -------------
@@ -2074,7 +1995,7 @@ def write_flowveldepth(
     flowveldepth (DataFrame) -  including flowrate, velocity, and depth for each time step
     nudge (numpy.ndarray) - nudge data with shape (76, 289)
     usgs_positions_id (array) - Position ids of usgs gages
-    '''
+    """
 
     mask_list = stream_output_mask_reader(stream_output_mask)
     nex_id, seg_id = mask_find_seg(mask_list, nexus_dict, poi_crosswalk)
@@ -2082,20 +2003,20 @@ def write_flowveldepth(
 
     # timesteps, variable = zip(*flowveldepth.columns.tolist())
     # timesteps = list(timesteps)
-    n_timesteps = flowveldepth.shape[1]//3
-    ts = stream_output_internal_frequency//(dt//60)
-    ind = [i for i in range(ts-1,n_timesteps,ts)]
-    timestamps_sec =  [(i+1)*dt for i in ind]
+    n_timesteps = flowveldepth.shape[1] // 3
+    ts = stream_output_internal_frequency // (dt // 60)
+    ind = [i for i in range(ts - 1, n_timesteps, ts)]
+    timestamps_sec = [(i + 1) * dt for i in ind]
 
-    flow = flowveldepth.iloc[:,0::3].iloc[:,ind]
-    velocity = flowveldepth.iloc[:,1::3].iloc[:,ind]
-    depth = flowveldepth.iloc[:,2::3].iloc[:,ind]
+    flow = flowveldepth.iloc[:, 0::3].iloc[:, ind]
+    velocity = flowveldepth.iloc[:, 1::3].iloc[:, ind]
+    depth = flowveldepth.iloc[:, 2::3].iloc[:, ind]
 
     # Check if the first column of nudge is all zeros
     if np.all(nudge[:, 0] == 0):
         # Drop the first column
         nudge = nudge[:, 1:]
-    nudge_df = pd.DataFrame(data=nudge, index=usgs_positions_id).iloc[:,ind]
+    nudge_df = pd.DataFrame(data=nudge, index=usgs_positions_id).iloc[:, ind]
     empty_ids = list(set(flowveldepth.index).difference(set(nudge_df.index)))
     empty_df = pd.DataFrame(index=empty_ids, columns=nudge_df.columns).fillna(-9999.0)
     nudge_df = pd.concat([nudge_df, empty_df]).loc[flowveldepth.index]
@@ -2103,21 +2024,25 @@ def write_flowveldepth(
     jobs = []
 
     if stream_output_timediff > 0:
-        ts_per_file = stream_output_timediff*60//stream_output_internal_frequency
+        ts_per_file = stream_output_timediff * 60 // stream_output_internal_frequency
 
-        num_files = flowveldepth.shape[1]//3*dt//(stream_output_timediff*60*60)
-        if num_files==0:
-            num_files=1
+        num_files = flowveldepth.shape[1] // 3 * dt // (stream_output_timediff * 60 * 60)
+        if num_files == 0:
+            num_files = 1
 
         for _ in range(num_files):
-            filename = 'troute_output_' + file_name_time.strftime('%Y%m%d%H%M') + stream_output_type
-            args = (stream_output_directory,filename,
-                    flow.iloc[:,0:ts_per_file],
-                    velocity.iloc[:,0:ts_per_file],
-                    depth.iloc[:,0:ts_per_file],
-                    nudge_df.iloc[:,0:ts_per_file],
-                    timestamps_sec[0:ts_per_file],t0)
-            if stream_output_type == '.nc':
+            filename = "troute_output_" + file_name_time.strftime("%Y%m%d%H%M") + stream_output_type
+            args = (
+                stream_output_directory,
+                filename,
+                flow.iloc[:, 0:ts_per_file],
+                velocity.iloc[:, 0:ts_per_file],
+                depth.iloc[:, 0:ts_per_file],
+                nudge_df.iloc[:, 0:ts_per_file],
+                timestamps_sec[0:ts_per_file],
+                t0,
+            )
+            if stream_output_type == ".nc":
                 if cpu_pool > 1 & num_files > 1:
                     jobs.append(delayed(write_flowveldepth_netcdf)(*args))
                 else:
@@ -2128,24 +2053,26 @@ def write_flowveldepth(
                 else:
                     write_flowveldepth_csv_pkl(*args)
 
-            flow = flow.iloc[:,ts_per_file:]
-            velocity = velocity.iloc[:,ts_per_file:]
-            depth = depth.iloc[:,ts_per_file:]
-            nudge_df = nudge_df.iloc[:,ts_per_file:]
+            flow = flow.iloc[:, ts_per_file:]
+            velocity = velocity.iloc[:, ts_per_file:]
+            depth = depth.iloc[:, ts_per_file:]
+            nudge_df = nudge_df.iloc[:, ts_per_file:]
             timestamps_sec = timestamps_sec[ts_per_file:]
             file_name_time = file_name_time + timedelta(hours=stream_output_timediff)
 
     elif stream_output_timediff == -1:
-
-        filename = 'troute_output_' + file_name_time.strftime('%Y%m%d%H%M') + stream_output_type
-        args = (stream_output_directory,filename,
-                flow,
-                velocity,
-                depth,
-                nudge_df,
-                timestamps_sec,
-                t0)
-        if stream_output_type == '.nc':
+        filename = "troute_output_" + file_name_time.strftime("%Y%m%d%H%M") + stream_output_type
+        args = (
+            stream_output_directory,
+            filename,
+            flow,
+            velocity,
+            depth,
+            nudge_df,
+            timestamps_sec,
+            t0,
+        )
+        if stream_output_type == ".nc":
             if cpu_pool > 1:
                 jobs.append(delayed(write_flowveldepth_netcdf)(*args))
             else:
@@ -2167,9 +2094,7 @@ def write_flowveldepth(
     LOG.debug("Completed the write_flowveldepth_netcdf function")
 
 
-
-
-#TODO Delete these function. They've been replace by the above two functions. Keep here for
+# TODO Delete these function. They've been replace by the above two functions. Keep here for
 # now until functions above are properly vetted.
 
 

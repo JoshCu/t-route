@@ -87,9 +87,9 @@ def test_directory_path_use_strict(directory):
     ),
 )
 def test_directory_path_use_strict_raises(directory):
-    assert (
-        not Path(directory).exists() and not Path(directory).is_dir()
-    ), "test expects dir not to exist"
+    assert not Path(directory).exists() and not Path(directory).is_dir(), (
+        "test expects dir not to exist"
+    )
 
     class Foo(BaseModel):
         dir: DirectoryPath

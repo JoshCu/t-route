@@ -77,8 +77,8 @@ else:
 
 
 def compute_mc_up2down_ReachbySegment():
-    """HANDLE LOOPING, 
-        Then call single segment routine for each segment"""
+    """HANDLE LOOPING,
+    Then call single segment routine for each segment"""
     pass
 
 
@@ -98,7 +98,6 @@ def singlesegment_wrf(
     s0=None,  # s0
     depthp=None,  # depth at previous time step
 ):
-
     # call Fortran routine
     return submuskingcunge_wrf_module.submuskingcunge(
         qup,
@@ -136,7 +135,6 @@ def singlesegment(
     velp=None,  # DUMMY -- dropped from the computation
     depthp=None,  # depth at previous time step
 ):
-
     # call Fortran routine
     rv = muskingcunge_module.muskingcungenwm(
         dt,
@@ -162,14 +160,12 @@ def singlesegment(
 
 def single_vs_double():
     """
-      No Inputs: 
-      Uses several sets of hard-coded test values to show the behavior
-      of the Muskingum Cunge routing calculation module under a low-flow 
-      and a high-flow condition.
+    No Inputs:
+    Uses several sets of hard-coded test values to show the behavior
+    of the Muskingum Cunge routing calculation module under a low-flow
+    and a high-flow condition.
     """
-    print(
-        "First test low-flow, showing expected result depending on precision of calculation."
-    )
+    print("First test low-flow, showing expected result depending on precision of calculation.")
     dt = 60.0  # Time step
     dx = 1800.0  # segment length
     bw = 112.0  # Trapezoidal bottom width
@@ -185,7 +181,6 @@ def single_vs_double():
     precision = "single"
 
     if precision == "single":
-
         """
         single precision results from standard procedure
         ORIG..ORIG
@@ -233,9 +228,7 @@ def single_vs_double():
         """
         qup = 0.04598825885217007  # Flow from the upstream neighbor in the previous timestep
         quc = 0.04598825885217007  # Flow from the upstream neighbor in the current timestep
-        qdp = (
-            0.21487345087737053  # Flow at the current segment in the previous timestep
-        )
+        qdp = 0.21487345087737053  # Flow at the current segment in the previous timestep
         depthp = 0.010033471026476835  # Depth at the current segment in the previous timestep')
         velp = 0.07048020184743511  # Velocity in the current segment in the previous timestep NOT USED AS AN INPUT!!!
 
@@ -362,6 +355,7 @@ def main():
             )
         )
 
+
 def compare_methods(
     precision,
     dt,
@@ -401,9 +395,9 @@ def compare_methods(
     )
 
     # print(
-        # "real {} precision computed via updated method wrapped in f2py q: {} vel: {} depth: {}".format(
-            # precision, qdc1, velc1, depthc1
-        # )
+    # "real {} precision computed via updated method wrapped in f2py q: {} vel: {} depth: {}".format(
+    # precision, qdc1, velc1, depthc1
+    # )
     # )
     # run M-C model
     qdc_t, velc_t, depthc_t = singlesegment_wrf(
@@ -425,9 +419,9 @@ def compare_methods(
     )
 
     # print(
-        # "real {} precision computed via WRF-Hydro method q: {} vel: {} depth: {}".format(
-            # precision, qdc_t, velc_t, depthc_t
-        # )
+    # "real {} precision computed via WRF-Hydro method q: {} vel: {} depth: {}".format(
+    # precision, qdc_t, velc_t, depthc_t
+    # )
     # )
 
     # compare_func = reach.compute_reach_cython_kernel
@@ -455,9 +449,9 @@ def compare_methods(
     qdc2, velc2, depthc2 = rv["qdc"], rv["velc"], rv["depthc"]
 
     # print(
-        # "real {} precision computed via T-Route method q: {} vel: {} depth: {}".format(
-            # precision, qdc2, velc2, depthc2
-        # )
+    # "real {} precision computed via T-Route method q: {} vel: {} depth: {}".format(
+    # precision, qdc2, velc2, depthc2
+    # )
     # )
 
     # compare_func = reach.compute_reach_cython_kernel

@@ -26,6 +26,7 @@ class ComputeParameters(BaseModel):
     """
     Parameters specific to the routing simulation.
     """
+
     parallel_compute_method: ParallelComputeMethod = "by-network"
     """
     parallel computing scheme used during simulation, options below
@@ -76,6 +77,7 @@ class RestartParameters(BaseModel):
     """
     Parameters specifying warm-state simulation conditions.
     """
+
     start_datetime: Optional[datetime] = None
     """
     Time of model initialization (timestep zero). Datetime format should be %Y-%m-%d_%H:%M, e.g., 2023-04-25_00:00
@@ -146,19 +148,17 @@ class RestartParameters(BaseModel):
     """
     Fieldname of waterbody IDs in channel geometry file.
     """
-    
 
-    _coerce_datetime = validator("start_datetime", pre=True, allow_reuse=True)(
-        coerce_datetime
-    )
+    _coerce_datetime = validator("start_datetime", pre=True, allow_reuse=True)(coerce_datetime)
 
 
 # TODO: determine how to handle context specific required fields
 class HybridParameters(BaseModel):
     """
-    Parameters controlling the use of MC/diffusive hybrid simulations. Only include/populate these parameters if an 
+    Parameters controlling the use of MC/diffusive hybrid simulations. Only include/populate these parameters if an
     MC/diffusive hybrid simulations is desired.
     """
+
     run_hybrid_routing: bool = False
     """
     Boolean parameter whether or not hybrid routing is actived. If it is set to True, the hybrid routing is activated. 
@@ -213,11 +213,12 @@ class HybridParameters(BaseModel):
 
 class QLateralForcingSet(BaseModel):
     """
-    Forcing files and number of timesteps associated with each simulation loop. This is optional, only include if 
-    explicitly listing the forcing files in each set. If this variable is not present, make sure nts, 
+    Forcing files and number of timesteps associated with each simulation loop. This is optional, only include if
+    explicitly listing the forcing files in each set. If this variable is not present, make sure nts,
     qlat_file_pattern_filter, and max_loop_size variables are listed.
     NOTE: Using nts, qlat_input_folder, qlat_file_pattern_filter, and max_loop_size is the preferred method.
     """
+
     nts: "QLateralFiles"
     """
     Number of timesteps in loop iteration 1. This corresponds to the number of files listed in qlat_files.
@@ -236,6 +237,7 @@ class StreamflowDA(BaseModel):
     """
     Parameters controlling streamflow nudging DA
     """
+
     streamflow_nudging: bool = False
     """
     Boolean, determines whether or not streamflow nudging is performed.
@@ -247,12 +249,12 @@ class StreamflowDA(BaseModel):
     NOTE: Mandatory for streamflow DA on NHDNetwork. Not necessary on HYFeatures as this information is included
     in the hydrofabric.
     """
-    crosswalk_gage_field: Optional[str] = 'gages'
+    crosswalk_gage_field: Optional[str] = "gages"
     """
     Column name for gages in gage_segID_crosswalk_file.
     NOTE: Not necessary on HYFeatures.
     """
-    crosswalk_segID_field: Optional[str] = 'link'
+    crosswalk_segID_field: Optional[str] = "link"
     """
     Column name for flowpaths/links in gage_segID_crosswalk_file.
     NOTE: Not necessary on HYFeatures.
@@ -273,6 +275,7 @@ class ReservoirPersistenceDA(BaseModel):
     """
     Parameters controlling persistence reservoir DA. This if for USGS/USACE reservoirs.
     """
+
     reservoir_persistence_usgs: bool = False
     """
     If True, USGS reservoirs will perform data assimilation.
@@ -308,6 +311,7 @@ class ReservoirRfcParameters(BaseModel):
     """
     Parameters controlling RFC reservoirs DA.
     """
+
     reservoir_rfc_forecasts: Literal[True] = True
     """
     If True, RFC reservoirs will perform data assimilation.
@@ -340,10 +344,11 @@ class ReservoirDA(BaseModel):
     """
     Parameters controlling reservoir DA.
     """
+
     reservoir_persistence_da: Optional[ReservoirPersistenceDA] = None
-    reservoir_rfc_da: Optional[
-        Union[ReservoirRfcParameters, ReservoirRfcParametersDisabled]
-    ] = Field(None, discriminator="reservoir_rfc_forecasts")
+    reservoir_rfc_da: Optional[Union[ReservoirRfcParameters, ReservoirRfcParametersDisabled]] = (
+        Field(None, discriminator="reservoir_rfc_forecasts")
+    )
     reservoir_parameter_file: Optional[FilePath] = None
     """
     File conaining reservoir parameters (e.g., reservoir_index_AnA.nc).
@@ -351,10 +356,11 @@ class ReservoirDA(BaseModel):
     """
 
 
-class DataAssimilationParameters(BaseModel, extra='ignore'):
+class DataAssimilationParameters(BaseModel, extra="ignore"):
     """
     Parameters controlling data assimilation.
     """
+
     usgs_timeslices_folder: Optional[DirectoryPath] = None
     """
     Directory path to usgs timeslice files.
@@ -391,7 +397,7 @@ class DataAssimilationParameters(BaseModel, extra='ignore'):
     NOTE: Only relevant if using a WRF-Hydro lastobs restart file.
     """
     wrf_lastobs_type: str = "obs-based"
-    
+
     streamflow_da: StreamflowDA = None
     reservoir_da: Optional[ReservoirDA] = None
 
@@ -411,6 +417,7 @@ class ForcingParameters(BaseModel):
     """
     Parameters controlling model forcing.
     """
+
     qts_subdivisions: int = 12
     """
     The number of routing simulation timesteps per qlateral time interval. For example, if dt_qlateral = 3600 secs, 

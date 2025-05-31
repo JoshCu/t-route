@@ -74,13 +74,7 @@ def format_unary(val: ast.UnaryOp) -> str:
 
 def format_annotation(
     sub: (
-        ast.Name
-        | ast.Attribute
-        | ast.Constant
-        | ast.Tuple
-        | ast.Call
-        | ast.UnaryOp
-        | ast.Lambda
+        ast.Name | ast.Attribute | ast.Constant | ast.Tuple | ast.Call | ast.UnaryOp | ast.Lambda
     ),
 ) -> str:
     if type(sub) == ast.Name:
@@ -306,11 +300,11 @@ def import_model(model_name: str) -> pydantic.BaseModel:
 
 
 def main() -> int:
-    description = "Generate a pydantic model's documentation using its type hints and field docstrings"
-    parser = argparse.ArgumentParser(description=description)
-    parser.add_argument(
-        "model", nargs=1, help="python formatted import path to pydantic model"
+    description = (
+        "Generate a pydantic model's documentation using its type hints and field docstrings"
     )
+    parser = argparse.ArgumentParser(description=description)
+    parser.add_argument("model", nargs=1, help="python formatted import path to pydantic model")
     parser.add_argument(
         "--ast",
         action="store_true",

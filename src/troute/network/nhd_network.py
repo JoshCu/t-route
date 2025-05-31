@@ -3,8 +3,9 @@ from itertools import chain
 from functools import reduce
 from toolz import pluck
 from deprecated import deprecated
-#Consider using sphinx for inlining deprecation into docstrings
-#from deprecated.sphinx import deprecated
+# Consider using sphinx for inlining deprecation into docstrings
+# from deprecated.sphinx import deprecated
+
 
 def reverse_dict(d):
     """
@@ -22,8 +23,9 @@ def reverse_dict(d):
     """
     return {v: k for k, v in d.items()}
 
+
 def extract_connections(rows, target_col, terminal_codes=None):
-    '''
+    """
     Extract connection network from dataframe.
 
     Arguments:
@@ -36,7 +38,7 @@ def extract_connections(rows, target_col, terminal_codes=None):
     --------
     network (dict, int: [int]): {segment id: [list of downstream adjacent segment ids]}
 
-    '''
+    """
     if terminal_codes is not None:
         terminal_codes = set(terminal_codes)
     else:
@@ -51,9 +53,10 @@ def extract_connections(rows, target_col, terminal_codes=None):
             network[src].append(dst)
     return network
 
-@deprecated(version='2.4.0', reason="Functionality moved to Network classes")
-def extract_waterbody_connections(rows, target_col = 'waterbody', waterbody_null=-9999):
-    '''
+
+@deprecated(version="2.4.0", reason="Functionality moved to Network classes")
+def extract_waterbody_connections(rows, target_col="waterbody", waterbody_null=-9999):
+    """
     Extract waterbody mapping from parameter dataframe. Mapping segment ids to the lake ids they reside in
 
     Arguments
@@ -66,12 +69,9 @@ def extract_waterbody_connections(rows, target_col = 'waterbody', waterbody_null
     -------
     wbody_map (dict, int: int): {segment id: lake id}
 
-    '''
+    """
 
-    wbody_map = (rows.loc[rows[target_col] != waterbody_null, target_col].
-                     astype("int").
-                     to_dict()
-                    )
+    wbody_map = rows.loc[rows[target_col] != waterbody_null, target_col].astype("int").to_dict()
 
     return wbody_map
 
@@ -94,7 +94,9 @@ def gage_mapping(segment_gage_df, gage_col="gages"):
     gage_list = list(map(bytes.strip, segment_gage_df[gage_col].values))
     gage_mask = list(map(bytes.isalnum, gage_list))
     segment_gage_df = segment_gage_df.loc[gage_mask, [gage_col]]
-    segment_gage_df[gage_col] = segment_gage_df[gage_col].apply(lambda x: x.decode('utf-8')).str.strip()
+    segment_gage_df[gage_col] = (
+        segment_gage_df[gage_col].apply(lambda x: x.decode("utf-8")).str.strip()
+    )
     gage_map = segment_gage_df.to_dict()
     return gage_map
 
@@ -108,7 +110,7 @@ def reverse_surjective_mapping(d):
 
 
 def reverse_network(N):
-    '''
+    """
     Reverse network connections graph
 
     Arguments:
@@ -119,7 +121,7 @@ def reverse_network(N):
     --------
     rg (dict, int: [int]): upstream network connections
 
-    '''
+    """
     rg = defaultdict(list)
     for src, dst in N.items():
         rg[src]
@@ -130,7 +132,7 @@ def reverse_network(N):
 
 
 def headwaters(N):
-    '''
+    """
     Find network headwater segments
 
     Arguments
@@ -146,11 +148,12 @@ def headwaters(N):
     - If reverse connections graph is handed as input, then function
       will return network tailwaters.
 
-    '''
+    """
     return N.keys() - chain.from_iterable(N.values())
 
+
 def tailwaters(N):
-    '''
+    """
     Find network tailwaters
 
     Arguments
@@ -166,12 +169,13 @@ def tailwaters(N):
     - If reverse connections graph is handed as input, then function
       will return network headwaters.
 
-    '''
+    """
     tw = chain.from_iterable(N.values()) - N.keys()
     for m, n in N.items():
         if not n:
             tw.add(m)
     return tw
+
 
 def reachable(N, sources=None, targets=None):
     """
@@ -237,11 +241,7 @@ def reachable_network(N, sources=None, targets=None, check_disjoint=True):
     reached = reachable(N, sources=sources, targets=targets)
 
     # check network connectivity
-    if (
-        check_disjoint
-        and len(reached) > 1
-        and reduce(set.intersection, reached.values())
-    ):
+    if check_disjoint and len(reached) > 1 and reduce(set.intersection, reached.values()):
         raise ValueError("Networks not disjoint")
 
     rv = {}
@@ -251,7 +251,7 @@ def reachable_network(N, sources=None, targets=None, check_disjoint=True):
 
 
 def split_at_junction(network, path, node):
-    '''
+    """
     Identify reach break points at junctions.
 
     Arguments:
@@ -264,11 +264,12 @@ def split_at_junction(network, path, node):
     --------
     (bool): False if segment is a network break point, True otherwise
 
-    '''
+    """
     return len(network[node]) == 1
 
+
 def split_at_gages_waterbodies_and_junctions(gage_nodes, waterbody_nodes, network, path, node):
-    '''
+    """
     Identify reach break points at stream gages, waterbodies and junctions.
 
     Arguments:
@@ -283,7 +284,7 @@ def split_at_gages_waterbodies_and_junctions(gage_nodes, waterbody_nodes, networ
     --------
     (bool): False if segment is a network break point, True otherwise
 
-    '''
+    """
     if (path[-1] in gage_nodes) | (node in gage_nodes):
         return False  # force a path split if coming from or going to a gage node
     if (path[-1] in waterbody_nodes) ^ (node in waterbody_nodes):
@@ -291,8 +292,9 @@ def split_at_gages_waterbodies_and_junctions(gage_nodes, waterbody_nodes, networ
     else:
         return len(network[node]) == 1
 
+
 def split_at_gages_and_junctions(gage_nodes, network, path, node):
-    '''
+    """
     Identify reach break points at stream gages and junctions.
 
     Arguments:
@@ -306,14 +308,15 @@ def split_at_gages_and_junctions(gage_nodes, network, path, node):
     --------
     (bool): False if segment is a network break point, True otherwise
 
-    '''
+    """
     if (path[-1] in gage_nodes) | (node in gage_nodes):
         return False  # force a path split if entering or exiting a waterbody
     else:
         return len(network[node]) == 1
 
+
 def split_at_waterbodies_and_junctions(waterbody_nodes, network, path, node):
-    '''
+    """
     Identify reach break points at waterbody inlets/outlets and junctions.
 
     Arguments:
@@ -327,7 +330,7 @@ def split_at_waterbodies_and_junctions(waterbody_nodes, network, path, node):
     --------
     (bool): False if segment is a network break point, True otherwise
 
-    '''
+    """
     if (path[-1] in waterbody_nodes) ^ (node in waterbody_nodes):
         return False  # force a path split if entering or exiting a waterbody
     else:
@@ -335,7 +338,6 @@ def split_at_waterbodies_and_junctions(waterbody_nodes, network, path, node):
 
 
 def dfs_decomposition_depth_tuple(RN, path_func, source_nodes=None):
-
     """
     Decompose network into lists of simply connected nodes
     For the routing problem, these sets of nodes are segments
@@ -386,11 +388,9 @@ def dfs_decomposition_depth_tuple(RN, path_func, source_nodes=None):
         source_nodes = headwaters(RN_coalesced)
     else:
         if source_nodes not in RN_coalesced:
-            raise AssertionError(
-                "the source nodes *must* be members of the coalesced set..."
-            )
+            raise AssertionError("the source nodes *must* be members of the coalesced set...")
     depth_tuples = dfs_count_depth(RN_coalesced, source_nodes)
-    return zip(pluck(0,depth_tuples), reach_list)
+    return zip(pluck(0, depth_tuples), reach_list)
 
 
 def dfs_count_depth(RN, source_nodes=None):
@@ -511,6 +511,7 @@ def dfs_decomposition(N, path_func, source_nodes=None):
 
     return paths
 
+
 def kahn_toposort(N):
     degrees = in_degrees(N)
     zero_degree = set(k for k, v in degrees.items() if v == 0)
@@ -613,6 +614,7 @@ def replace_waterbodies_connections(connections, waterbodies):
 
     return new_conn, link_lake
 
+
 def build_subnetworks(connections, rconn, min_size, sources=None):
     """
     Construct subnetworks using a truncated breadth-first-search
@@ -635,23 +637,19 @@ def build_subnetworks(connections, rconn, min_size, sources=None):
 
     subnetwork_master = {}
     for net in sources:
-
         # subnetwork creation using a breadth first search restricted by maximum allowable depth
         # new_sources_list = [net]
         new_sources = set([net])
         subnetworks = {}
         group_order = 0
         while new_sources:
-
             # Build dict object containing reachable nodes within max_depth from each source in new_sources
             rv = {}
             for h in new_sources:
-
                 reachable = set()
                 Q = deque([(h, 0)])
                 stop_depth = 1000000
                 while Q:
-
                     x, y = Q.popleft()
                     reachable.add(x)
 

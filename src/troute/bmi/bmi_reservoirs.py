@@ -7,169 +7,170 @@ from pathlib import Path
 # Here is the model we want to run
 from model_reservoir import reservoir_model
 
-class bmi_reservoir(Bmi):
 
+class bmi_reservoir(Bmi):
     def __init__(self):
         """Create a Bmi reservoir model that is ready for initialization."""
         super(bmi_reservoir, self).__init__()
         self._model = None
         self._values = {}
-        #self._var_units = {}
+        # self._var_units = {}
         self._var_loc = "node"
         self._var_grid_id = 0
-        #self._grids = {}
-        #self._grid_type = {}
+        # self._grids = {}
+        # self._grid_type = {}
 
         self._start_time = 0.0
         self._end_time = np.finfo("d").max
         self._time_units = "s"
 
-    #----------------------------------------------
+    # ----------------------------------------------
     # Required, static attributes of the model
-    #----------------------------------------------
+    # ----------------------------------------------
     _att_map = {
-        'model_name':         'Reservoir for Next Generation NWM',
-        'version':            '',
-        'author_name':        '',
-        'grid_type':          'scalar', 
-        'time_step_size':      1,       
-        #'time_step_type':     'donno', #unused  
+        "model_name": "Reservoir for Next Generation NWM",
+        "version": "",
+        "author_name": "",
+        "grid_type": "scalar",
+        "time_step_size": 1,
+        #'time_step_type':     'donno', #unused
         #'step_method':        'none',  #unused
         #'time_units':         '1 hour' #NJF Have to drop the 1 for NGEN to recognize the unit
-        'time_units':         'seconds' }
-
-    #---------------------------------------------
-    # Input variable names (CSDMS standard names)
-    #---------------------------------------------
-    _input_var_names = [
-        # waterbody static variables
-        'lake_surface__elevation',
-        'LkArea',
-        'WeirE',
-        'WeirC',
-        'WeirL',
-        'dam_length',
-        'OrificeE',
-        'OrificeC',
-        'OrificeA',
-        'LkMxE',
-        'waterbody_id',
-        'ifd',
-        'upstream_ids',
-        'res_type',
-        'da_idx',
-        'time_step',
-        'rfc_forecast_persist_seconds',
-        'synthetic_flag',
-        # dynamic forcing/DA variables
-        'lake_water~incoming__volume_flow_rate',
-        ]
-
-    #---------------------------------------------
-    # Output variable names (CSDMS standard names)
-    #---------------------------------------------
-    _output_var_names = ['lake_water~outgoing__volume_flow_rate',
-                         'lake_surface__elevation'
-                        ]
-
-    #------------------------------------------------------
-    # Create a Python dictionary that maps CSDMS Standard
-    # Names to the model's internal variable names.
-    #------------------------------------------------------
-    #TODO update all these...
-    _var_name_units_map = {
-        'channel_exit_water_x-section__volume_flow_rate':['streamflow_cms','m3 s-1'],
-        'channel_water_flow__speed':['streamflow_ms','m s-1'],
-        'channel_water__mean_depth':['streamflow_m','m'],
-        'lake_water~incoming__volume_flow_rate':['waterbody_cms','m3 s-1'],
-        'lake_water~outgoing__volume_flow_rate':['waterbody_cms','m3 s-1'],
-        'lake_surface__elevation':['waterbody_m','m'],
-        #--------------   Dynamic inputs --------------------------------
-        'land_surface_water_source__volume_flow_rate':['streamflow_cms','m3 s-1'],
-        'coastal_boundary_depth':['depth_m', 'm'],
-        'usgs_gage_observation__volume_flow_rate':['streamflow_cms','m3 s-1'],
-        'reservoir_usgs_gage_observation__volume_flow_rate':['streamflow_cms','m3 s-1'],
-        'reservoir_usace_gage_observation__volume_flow_rate':['streamflow_cms','m3 s-1'],
-        'rfc_gage_observation__volume_flow_rate':['streamflow_cms','m3 s-1'],
-        'lastobs__volume_flow_rate':['streamflow_cms','m3 s-1']
+        "time_units": "seconds",
     }
 
-    #------------------------------------------------------
+    # ---------------------------------------------
+    # Input variable names (CSDMS standard names)
+    # ---------------------------------------------
+    _input_var_names = [
+        # waterbody static variables
+        "lake_surface__elevation",
+        "LkArea",
+        "WeirE",
+        "WeirC",
+        "WeirL",
+        "dam_length",
+        "OrificeE",
+        "OrificeC",
+        "OrificeA",
+        "LkMxE",
+        "waterbody_id",
+        "ifd",
+        "upstream_ids",
+        "res_type",
+        "da_idx",
+        "time_step",
+        "rfc_forecast_persist_seconds",
+        "synthetic_flag",
+        # dynamic forcing/DA variables
+        "lake_water~incoming__volume_flow_rate",
+    ]
+
+    # ---------------------------------------------
+    # Output variable names (CSDMS standard names)
+    # ---------------------------------------------
+    _output_var_names = ["lake_water~outgoing__volume_flow_rate", "lake_surface__elevation"]
+
+    # ------------------------------------------------------
+    # Create a Python dictionary that maps CSDMS Standard
+    # Names to the model's internal variable names.
+    # ------------------------------------------------------
+    # TODO update all these...
+    _var_name_units_map = {
+        "channel_exit_water_x-section__volume_flow_rate": ["streamflow_cms", "m3 s-1"],
+        "channel_water_flow__speed": ["streamflow_ms", "m s-1"],
+        "channel_water__mean_depth": ["streamflow_m", "m"],
+        "lake_water~incoming__volume_flow_rate": ["waterbody_cms", "m3 s-1"],
+        "lake_water~outgoing__volume_flow_rate": ["waterbody_cms", "m3 s-1"],
+        "lake_surface__elevation": ["waterbody_m", "m"],
+        # --------------   Dynamic inputs --------------------------------
+        "land_surface_water_source__volume_flow_rate": ["streamflow_cms", "m3 s-1"],
+        "coastal_boundary_depth": ["depth_m", "m"],
+        "usgs_gage_observation__volume_flow_rate": ["streamflow_cms", "m3 s-1"],
+        "reservoir_usgs_gage_observation__volume_flow_rate": ["streamflow_cms", "m3 s-1"],
+        "reservoir_usace_gage_observation__volume_flow_rate": ["streamflow_cms", "m3 s-1"],
+        "rfc_gage_observation__volume_flow_rate": ["streamflow_cms", "m3 s-1"],
+        "lastobs__volume_flow_rate": ["streamflow_cms", "m3 s-1"],
+    }
+
+    # ------------------------------------------------------
     # A list of static attributes. Not all these need to be used.
-    #------------------------------------------------------
+    # ------------------------------------------------------
     _static_attributes_list = []
 
-
-    #------------------------------------------------------------
-    #------------------------------------------------------------
+    # ------------------------------------------------------------
+    # ------------------------------------------------------------
     # BMI: Model Control Functions
-    #------------------------------------------------------------ 
-    #------------------------------------------------------------
+    # ------------------------------------------------------------
+    # ------------------------------------------------------------
 
-    #-------------------------------------------------------------------
+    # -------------------------------------------------------------------
     def initialize(self, bmi_cfg_file=None):
-        
         # -------------- Read in the BMI configuration -------------------------#
         if bmi_cfg_file:
             bmi_cfg_file = Path(bmi_cfg_file)
-        
+
         # ------------- Initialize t-route model ------------------------------#
         self._model = reservoir_model(bmi_cfg_file)
 
         # ----- Create some lookup tabels from the long variable names --------#
-        self._var_name_map_long_first = {long_name:self._var_name_units_map[long_name][0] for \
-                                         long_name in self._var_name_units_map.keys()}
-        self._var_name_map_short_first = {self._var_name_units_map[long_name][0]:long_name for \
-                                          long_name in self._var_name_units_map.keys()}
-        self._var_units_map = {long_name:self._var_name_units_map[long_name][1] for \
-                                          long_name in self._var_name_units_map.keys()}
-        
+        self._var_name_map_long_first = {
+            long_name: self._var_name_units_map[long_name][0]
+            for long_name in self._var_name_units_map.keys()
+        }
+        self._var_name_map_short_first = {
+            self._var_name_units_map[long_name][0]: long_name
+            for long_name in self._var_name_units_map.keys()
+        }
+        self._var_units_map = {
+            long_name: self._var_name_units_map[long_name][1]
+            for long_name in self._var_name_units_map.keys()
+        }
 
-        # -------------- Initalize all the variables --------------------------# 
+        # -------------- Initalize all the variables --------------------------#
         # -------------- so that they'll be picked up with the get functions --#
-        #FIXME Do this better..., load size of variables from config file??
-        self._values['lake_surface__elevation'] = np.zeros(1)
-        self._values['LkArea'] = np.zeros(1)
-        self._values['WeirE'] = np.zeros(1)
-        self._values['WeirC'] = np.zeros(1)
-        self._values['WeirL'] = np.zeros(1)
-        self._values['dam_length'] = np.zeros(1)
-        self._values['OrificeE'] = np.zeros(1)
-        self._values['OrificeC'] = np.zeros(1)
-        self._values['OrificeA'] = np.zeros(1)
-        self._values['LkMxE'] = np.zeros(1)
-        self._values['waterbody_id'] = np.zeros(1)
-        self._values['ifd'] = np.zeros(1)
-        self._values['upstream_ids'] = np.zeros(1, dtype=int)
-        self._values['reservoir_type'] = np.zeros(1)
-        self._values['lake_water~incoming__volume_flow_rate'] = np.zeros(12)
-        self._values['lake_water~outgoing__volume_flow_rate'] = np.zeros(1)
+        # FIXME Do this better..., load size of variables from config file??
+        self._values["lake_surface__elevation"] = np.zeros(1)
+        self._values["LkArea"] = np.zeros(1)
+        self._values["WeirE"] = np.zeros(1)
+        self._values["WeirC"] = np.zeros(1)
+        self._values["WeirL"] = np.zeros(1)
+        self._values["dam_length"] = np.zeros(1)
+        self._values["OrificeE"] = np.zeros(1)
+        self._values["OrificeC"] = np.zeros(1)
+        self._values["OrificeA"] = np.zeros(1)
+        self._values["LkMxE"] = np.zeros(1)
+        self._values["waterbody_id"] = np.zeros(1)
+        self._values["ifd"] = np.zeros(1)
+        self._values["upstream_ids"] = np.zeros(1, dtype=int)
+        self._values["reservoir_type"] = np.zeros(1)
+        self._values["lake_water~incoming__volume_flow_rate"] = np.zeros(12)
+        self._values["lake_water~outgoing__volume_flow_rate"] = np.zeros(1)
 
+        # TODO: how will we know the size of these arrays?
+        self._values["gage_observations"] = np.zeros(120)
+        self._values["gage_time"] = np.zeros(120)
 
-        #TODO: how will we know the size of these arrays?
-        self._values['gage_observations'] = np.zeros(120)
-        self._values['gage_time'] = np.zeros(120)
+        self._values["da_idx"] = np.zeros(1, dtype=int)
+        self._values["time_step"] = np.zeros(1)
+        self._values["rfc_forecast_persist_seconds"] = np.zeros(1)
+        self._values["synthetic_flag"] = np.zeros(289)
 
-        self._values['da_idx'] = np.zeros(1, dtype=int)
-        self._values['time_step'] = np.zeros(1)
-        self._values['rfc_forecast_persist_seconds'] = np.zeros(1)
-        self._values['synthetic_flag'] = np.zeros(289)
-        
-        #RFC DA        
-        self._values['rfc_timeseries_offset_hours'] = np.zeros(1)
-        self._values['rfc_forecast_persist_days'] = np.zeros(1)
- 
-        '''
+        # RFC DA
+        self._values["rfc_timeseries_offset_hours"] = np.zeros(1)
+        self._values["rfc_forecast_persist_days"] = np.zeros(1)
+
+        """
         for var_name in self._input_var_names + self._output_var_names:
             # ---------- Temporarily set to 3 values ------------------#
             # ---------- so just set to zero for now ------------------#
             self._values[var_name] = np.zeros(3)
-        '''
+        """
 
     def update(self):
         """Advance model by one time step."""
-        if self._model._time==0.0:
-            self._model.preprocess_static_vars(self._values) 
+        if self._model._time == 0.0:
+            self._model.preprocess_static_vars(self._values)
 
         self._model.run(self._values)
 
@@ -180,7 +181,7 @@ class bmi_reservoir(Bmi):
         until : int
             Time to run model until in seconds.
         """
-        n_steps = int(until/self._model._time_step)
+        n_steps = int(until / self._model._time_step)
 
         for _ in range(int(n_steps)):
             self.update()
@@ -189,7 +190,7 @@ class bmi_reservoir(Bmi):
         """Finalize model."""
 
         self._model = None
-    
+
     def update_frac(self, time_frac):
         """Update model by a fraction of a time step.
         Parameters
@@ -336,7 +337,7 @@ class bmi_reservoir(Bmi):
     def set_value(self, var_name, src):
         """
         Set model values
-        
+
         Parameters
         ----------
         var_name : str
@@ -346,8 +347,8 @@ class bmi_reservoir(Bmi):
         """
         val = self.get_value_ptr(var_name)
         val[:] = src.reshape(val.shape)
-        
-        #self._values[var_name] = src
+
+        # self._values[var_name] = src
 
     def set_value_at_indices(self, name, inds, src):
         """Set model values at particular indices.
@@ -459,7 +460,7 @@ class bmi_reservoir(Bmi):
 
     def get_grid_z(self, grid, z):
         raise NotImplementedError("get_grid_z")
-        
+
     def _parse_config(self, cfg):
-        cfg_list = [cfg.get('flag'),cfg.get('file')]
+        cfg_list = [cfg.get("flag"), cfg.get("file")]
         return cfg_list

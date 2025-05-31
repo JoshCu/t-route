@@ -2,7 +2,6 @@ import numpy as np
 
 
 def _flatten_array(dataFrame, dataType):
-
     # convert to numpy array first
     array1 = dataFrame.to_numpy(copy=True, dtype=dataType)
     # flatten it
@@ -12,9 +11,8 @@ def _flatten_array(dataFrame, dataType):
 
 
 def _stringsToBMI(stringList):
-
     # Generate ASCII array for list of strings (one giant 1D ndarray with ASCII encodings
-    # concatenated together), aided by an array of how many strings each string consists 
+    # concatenated together), aided by an array of how many strings each string consists
     #
     nEntries = len(stringList)
     # define array defining string length for each station ID
@@ -31,26 +29,25 @@ def _stringsToBMI(stringList):
     for stringRead in stringList:
         # capture string length of present station
         stringLengthArray[index] = len(stringRead)
-        index += 1        
+        index += 1
         # convert string to ASCII code
-        charArray = np.array(stringRead, dtype='c')
-        addArray = np.array([ord(ch) for ch in charArray])        
+        charArray = np.array(stringRead, dtype="c")
+        addArray = np.array([ord(ch) for ch in charArray])
         # build up big array
-        if (firstIter):
+        if firstIter:
             stringArray = addArray
             firstIter = False
         else:
-            stringArray = np.concatenate([stringArray, addArray])    
+            stringArray = np.concatenate([stringArray, addArray])
 
     return (stringArray, stringLengthArray)
 
 
 def _time_from_df(dataFrame, timeBase):
-
     # get columns (date-time), extract as list at first
     datesList = (dataFrame.columns).tolist()
     # then subtract timebase
-    datesListSeconds = [int((d-timeBase).total_seconds()) for d in datesList]
+    datesListSeconds = [int((d - timeBase).total_seconds()) for d in datesList]
     nDates = len(datesListSeconds)
     datesSecondsArray = np.array(datesListSeconds)
 
@@ -58,11 +55,10 @@ def _time_from_df(dataFrame, timeBase):
 
 
 def _time_stations_from_df(dataFrame, timeBase):
-
     # get columns (date-time), extract as list at first
     datesList = (dataFrame.columns).tolist()
     # then subtract timebase
-    datesListSeconds = [int((d-timeBase).total_seconds()) for d in datesList]
+    datesListSeconds = [int((d - timeBase).total_seconds()) for d in datesList]
     nDates = len(datesListSeconds)
     datesSecondsArray = np.array(datesListSeconds)
 
@@ -73,7 +69,7 @@ def _time_stations_from_df(dataFrame, timeBase):
 
     # build station array (one giant 1D ndarray with ASCII encodings
     # concatenated together), aided by an array of how many strings each
-    # station ID consists of - completely USGS, USACE, etc agnostic 
+    # station ID consists of - completely USGS, USACE, etc agnostic
     #
     # define array defining string length for each station ID
     stationStringLengthArray = np.empty(nStations, dtype=np.int64)
@@ -89,12 +85,12 @@ def _time_stations_from_df(dataFrame, timeBase):
     for station in stations:
         # capture string length of present station
         stationStringLengthArray[stationIndex] = len(station)
-        stationIndex += 1        
+        stationIndex += 1
         # convert string to ASCII code
-        charArray = np.array(station, dtype='c')
-        addArray = np.array([ord(ch) for ch in charArray])        
+        charArray = np.array(station, dtype="c")
+        addArray = np.array([ord(ch) for ch in charArray])
         # build up big array
-        if (firstIter):
+        if firstIter:
             stationArray = addArray
             firstIter = False
         else:
@@ -103,8 +99,7 @@ def _time_stations_from_df(dataFrame, timeBase):
     return datesSecondsArray, nDates, stationArray, stationStringLengthArray, nStations
 
 
-def _bmi_disassemble_rfc_timeseries (dataFrame, timeRef):
-
+def _bmi_disassemble_rfc_timeseries(dataFrame, timeRef):
     # Extract individual columns and convert to ndarrays
 
     # Column entries that are already float or int:
@@ -126,28 +121,38 @@ def _bmi_disassemble_rfc_timeseries (dataFrame, timeRef):
     DatetimeList = (dataFrame["Datetime"]).tolist()
     timeStepsList = (dataFrame["timeSteps"]).tolist()
     # Convert to seconds (relative to timeRef for the absolute time stamp)
-    DatetimeListSeconds = [int((d-timeRef).total_seconds()) for d in DatetimeList]
+    DatetimeListSeconds = [int((d - timeRef).total_seconds()) for d in DatetimeList]
     timeStepsListSeconds = [int(d.total_seconds()) for d in timeStepsList]
     # Convert into numpy array
     rfc_Datetime = np.array(DatetimeListSeconds)
     rfc_timeSteps = np.array(timeStepsListSeconds)
-  
+
     # String entries: two arrays:
     #   1st array: conversion of entries into ASCII code
     #   2nd array: array with length of entries
     # Extract entries as list
     stationId_List = (dataFrame["stationId"]).tolist()
-    file_List = (dataFrame["file"]).tolist()    
+    file_List = (dataFrame["file"]).tolist()
     (rfc_StationId_array, rfc_StationId_stringLengths) = _stringsToBMI(stationId_List)
-    (rfc_List_array, rfc_List_stringLengths) = _stringsToBMI(file_List)   
+    (rfc_List_array, rfc_List_stringLengths) = _stringsToBMI(file_List)
 
-    return (rfc_da_timestep, rfc_totalCounts, rfc_synthetic_values, rfc_discharges, \
-            rfc_timeseries_idx, rfc_use_rfc, rfc_Datetime, rfc_timeSteps, rfc_StationId_array, \
-            rfc_StationId_stringLengths, rfc_List_array, rfc_List_stringLengths)
+    return (
+        rfc_da_timestep,
+        rfc_totalCounts,
+        rfc_synthetic_values,
+        rfc_discharges,
+        rfc_timeseries_idx,
+        rfc_use_rfc,
+        rfc_Datetime,
+        rfc_timeSteps,
+        rfc_StationId_array,
+        rfc_StationId_stringLengths,
+        rfc_List_array,
+        rfc_List_stringLengths,
+    )
 
 
-def _bmi_disassemble_lite_restart (dataFrame, dataType):
-
+def _bmi_disassemble_lite_restart(dataFrame, dataType):
     # These are the q0- and waterbody dataframes for "lite-restart"
     # index is int64, columns are strings, and array proper is float32 or float64
 
@@ -165,16 +170,13 @@ def _bmi_disassemble_lite_restart (dataFrame, dataType):
     return (columnArray, columnLengthArray, nCol, indexArray, nIndex, mainArray)
 
 
-def _bmi_disassemble_lastObs (lastobs_df):
-                
+def _bmi_disassemble_lastObs(lastobs_df):
     # Column entries that are already float or int:
     timeSinceArray = lastobs_df["time_since_lastobs"].to_numpy(dtype=np.float64, copy=True)
     lastDischargeArray = lastobs_df["lastobs_discharge"].to_numpy(dtype=np.float64, copy=True)
 
     # Gage IDs: string entry
     gageList = (lastobs_df["gages"]).tolist()
-    (gageArray, gageStringLengthArray) = _stringsToBMI(gageList)  
+    (gageArray, gageStringLengthArray) = _stringsToBMI(gageList)
 
-    return(gageArray, gageStringLengthArray, timeSinceArray, lastDischargeArray)
-
-
+    return (gageArray, gageStringLengthArray, timeSinceArray, lastDischargeArray)

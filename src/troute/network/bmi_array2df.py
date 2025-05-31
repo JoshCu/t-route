@@ -3,10 +3,9 @@ import pandas as pd
 from datetime import timedelta
 
 
-def _unflatten_array(array_1D,nx,ny):
-
+def _unflatten_array(array_1D, nx, ny):
     # reshape numpy array
-    array_2D = array_1D.reshape(ny,nx)
+    array_2D = array_1D.reshape(ny, nx)
 
     # convert to data frame
     df_raw = pd.DataFrame(array_2D)
@@ -14,22 +13,18 @@ def _unflatten_array(array_1D,nx,ny):
     return df_raw
 
 
-def _time_retrieve_from_arrays(dataFrame, timeBase, datesSecondsArrays, \
-                               timeAxisName, freqString):
-
+def _time_retrieve_from_arrays(dataFrame, timeBase, datesSecondsArrays, timeAxisName, freqString):
     # convert array to list at first
     datesList = (datesSecondsArrays).tolist()
 
     # add timebase back in, and convert to datetime format
-    datesList = [(timedelta(seconds=d)+timeBase) for d in datesList]
+    datesList = [(timedelta(seconds=d) + timeBase) for d in datesList]
 
     # convert to DatetimeIndex
-    if (freqString == 'None'):
-
+    if freqString == "None":
         dateTimeIndex = pd.DatetimeIndex(datesList, name=timeAxisName)
 
     else:
-
         dateTimeIndex = pd.DatetimeIndex(datesList, name=timeAxisName, freq=freqString)
 
     # transpose dataframe
@@ -42,21 +37,20 @@ def _time_retrieve_from_arrays(dataFrame, timeBase, datesSecondsArrays, \
     return dataFrameWithTime
 
 
-def _stations_retrieve_from_arrays(dataFrame, stationsArray, stationStringLengthArray, \
-                               stationAxisName):
-
+def _stations_retrieve_from_arrays(
+    dataFrame, stationsArray, stationStringLengthArray, stationAxisName
+):
     # first create station outputs as list
     stationsList = []
 
     # mark place in global stationsArray
-    i=0
+    i = 0
 
     for stringLength in stationStringLengthArray:
-
         # extract small array with ASCII codes of one station ID
-        stationID_asArray = stationsArray[i:i+stringLength]
+        stationID_asArray = stationsArray[i : i + stringLength]
         # increment global pointer along array
-        i=i+stringLength
+        i = i + stringLength
         # convert to list of characters
         firstRun = True
         for asciiCode in stationID_asArray:
@@ -71,32 +65,29 @@ def _stations_retrieve_from_arrays(dataFrame, stationsArray, stationStringLength
         # done with one station ID
         stationsList.append(stationID_asString)
 
-    # construct index    
+    # construct index
     index = pd.Index(stationsList, name=stationAxisName, dtype=object)
 
-    dataFrame.index = (index)
+    dataFrame.index = index
 
     return dataFrame
 
 
 def _BMI_toStrings(stringArray, stringLengthArray):
-
-    # Reassemble list of strings from main array with ASCII encodings and array of 
-    # how many characters each string consists 
-    
+    # Reassemble list of strings from main array with ASCII encodings and array of
+    # how many characters each string consists
 
     # first create station outputs as list
     stringList = []
 
     # mark place in global stationsArray
-    i=0
+    i = 0
 
     for stringLength in stringLengthArray:
-
         # extract small array with ASCII codes of one station ID
-        string_asArray = stringArray[i:i+stringLength]
+        string_asArray = stringArray[i : i + stringLength]
         # increment global pointer along array
-        i=i+stringLength
+        i = i + stringLength
         # convert to list of characters
         firstRun = True
         for asciiCode in string_asArray:
@@ -114,53 +105,69 @@ def _BMI_toStrings(stringArray, stringLengthArray):
     return stringList
 
 
-def _bmi_reassemble_rfc_timeseries (rfc_da_timestep, rfc_totalCounts, \
-                rfc_synthetic_values, rfc_discharges, rfc_timeseries_idx, \
-                rfc_use_rfc, rfc_Datetime, rfc_timeSteps, rfc_StationId_array, \
-                rfc_StationId_stringLengths, rfc_List_array, \
-                rfc_List_stringLengths, timeRef):
-
+def _bmi_reassemble_rfc_timeseries(
+    rfc_da_timestep,
+    rfc_totalCounts,
+    rfc_synthetic_values,
+    rfc_discharges,
+    rfc_timeseries_idx,
+    rfc_use_rfc,
+    rfc_Datetime,
+    rfc_timeSteps,
+    rfc_StationId_array,
+    rfc_StationId_stringLengths,
+    rfc_List_array,
+    rfc_List_stringLengths,
+    timeRef,
+):
     # Create empty dataframe with appropriate column names
-    columnList = ['stationId','discharges','synthetic_values','totalCounts',\
-                  'timeSteps','Datetime','timeseries_idx','file','use_rfc','da_timestep']
-    
+    columnList = [
+        "stationId",
+        "discharges",
+        "synthetic_values",
+        "totalCounts",
+        "timeSteps",
+        "Datetime",
+        "timeseries_idx",
+        "file",
+        "use_rfc",
+        "da_timestep",
+    ]
+
     # Build up dataframe
     dataFrame = pd.DataFrame()
     for col in columnList:
-
-        if (col == 'stationId'):
+        if col == "stationId":
             addedCol = _BMI_toStrings(rfc_StationId_array, rfc_StationId_stringLengths)
-        elif (col == 'discharges'):
+        elif col == "discharges":
             addedCol = rfc_discharges
-        elif (col == 'synthetic_values'):
+        elif col == "synthetic_values":
             addedCol = rfc_synthetic_values
-        elif (col == 'totalCounts'):
+        elif col == "totalCounts":
             addedCol = rfc_totalCounts
-        elif (col == 'timeSteps'):
+        elif col == "timeSteps":
             datesList = rfc_timeSteps.tolist()
             addedCol = [(timedelta(seconds=d)) for d in datesList]
-        elif (col == 'Datetime'):
+        elif col == "Datetime":
             datesList = rfc_Datetime.tolist()
-            addedCol = [(timedelta(seconds=d)+timeRef) for d in datesList]       
-        elif (col == 'timeseries_idx'):
+            addedCol = [(timedelta(seconds=d) + timeRef) for d in datesList]
+        elif col == "timeseries_idx":
             addedCol = rfc_timeseries_idx
-        elif (col == 'file'):
-            addedCol = _BMI_toStrings(rfc_List_array, rfc_List_stringLengths)        
-        elif (col == 'use_rfc'):
+        elif col == "file":
+            addedCol = _BMI_toStrings(rfc_List_array, rfc_List_stringLengths)
+        elif col == "use_rfc":
             addedCol = [bool(d) for d in rfc_use_rfc]
-        elif (col == 'da_timestep'):
-            addedCol = rfc_da_timestep      
+        elif col == "da_timestep":
+            addedCol = rfc_da_timestep
         # add the selected column
         dataFrame[col] = addedCol
 
     return dataFrame
 
 
-def _bmi_reassemble_lite_restart (columnArray, columnLengthArray, nCol, indexArray,\
-                                    nIndex, Array):
-    
+def _bmi_reassemble_lite_restart(columnArray, columnLengthArray, nCol, indexArray, nIndex, Array):
     # reverse flattening of array proper
-    df_raw = _unflatten_array(Array,nCol,nIndex)
+    df_raw = _unflatten_array(Array, nCol, nIndex)
 
     # get column names back as strings
     colList = _BMI_toStrings(columnArray, columnLengthArray)
@@ -175,30 +182,27 @@ def _bmi_reassemble_lite_restart (columnArray, columnLengthArray, nCol, indexArr
 
     # add index
     index = pd.Index(indexArray, dtype=np.int64)
-    df_raw_withCol.index = index 
+    df_raw_withCol.index = index
 
     df_complete = df_raw_withCol
 
     return df_complete
 
 
-def _bmi_reassemble_lastObs (gageArray, gageStringLengthArray, \
-                             timeSinceArray, lastDischargeArray):
-
+def _bmi_reassemble_lastObs(gageArray, gageStringLengthArray, timeSinceArray, lastDischargeArray):
     # Create empty dataframe with appropriate column names
-    columnList = ['gages','time_since_lastobs','lastobs_discharge']
-    
+    columnList = ["gages", "time_since_lastobs", "lastobs_discharge"]
+
     # Build up dataframe
     dataFrame = pd.DataFrame()
     for col in columnList:
-
-        if (col == 'gages'):
+        if col == "gages":
             addedCol = _BMI_toStrings(gageArray, gageStringLengthArray)
-        elif (col == 'time_since_lastobs'):
+        elif col == "time_since_lastobs":
             addedCol = timeSinceArray
-        elif (col == 'lastobs_discharge'):
+        elif col == "lastobs_discharge":
             addedCol = lastDischargeArray
-  
+
         # add the selected column
         dataFrame[col] = addedCol
 

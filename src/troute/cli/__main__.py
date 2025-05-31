@@ -9,9 +9,14 @@ from troute.network.DataAssimilation import DataAssimilation
 
 import pandas as pd
 
-from .input import  _input_handler_v04
+from .input import _input_handler_v04
 from .output import nwm_output_generator
-from troute.routing.compute import compute_nhd_routing_v02, compute_diffusive_routing, compute_log_mc, compute_log_diff
+from troute.routing.compute import (
+    compute_nhd_routing_v02,
+    compute_diffusive_routing,
+    compute_log_mc,
+    compute_log_diff,
+)
 
 import troute.network.nhd_io as nhd_io
 import troute.network.nhd_network_utilities_v02 as nnu
@@ -23,11 +28,12 @@ LOG.setLevel(logging.INFO)
 # set default console handler
 LOG.addHandler(logging.StreamHandler())
 
-'''
+"""
 High level orchestration of ngen t-route simulations for NWM application
-'''
-def main_v04(argv):
+"""
 
+
+def main_v04(argv):
     args = _handle_args_v03(argv)
 
     # unpack user inputs
@@ -46,18 +52,17 @@ def main_v04(argv):
     ) = _input_handler_v04(args)
 
     run_parameters = {
-        'dt': forcing_parameters.get('dt'),
-        'nts': forcing_parameters.get('nts'),
-        'cpu_pool': compute_parameters.get('cpu_pool'),
+        "dt": forcing_parameters.get("dt"),
+        "nts": forcing_parameters.get("nts"),
+        "cpu_pool": compute_parameters.get("cpu_pool"),
     }
 
     showtiming = log_parameters.get("showtiming", None)
 
-
     task_times = {}
-    task_times['forcing_time'] = 0
-    task_times['route_time'] = 0
-    task_times['output_time'] = 0
+    task_times["forcing_time"] = 0
+    task_times["route_time"] = 0
+    task_times["output_time"] = 0
     main_start_time = time.time()
 
     cpu_pool = compute_parameters.get("cpu_pool", None)
@@ -68,37 +73,40 @@ def main_v04(argv):
 
     network_start_time = time.time()
 
-    #if "ngen_nexus_file" in supernetwork_parameters:
-    if supernetwork_parameters["network_type"] == 'HYFeaturesNetwork':
-        network = HYFeaturesNetwork(supernetwork_parameters,
-                                    waterbody_parameters,
-                                    data_assimilation_parameters,
-                                    restart_parameters,
-                                    compute_parameters,
-                                    forcing_parameters,
-                                    hybrid_parameters,
-                                    preprocessing_parameters,
-                                    output_parameters,
-                                    verbose=True, showtiming=showtiming)
+    # if "ngen_nexus_file" in supernetwork_parameters:
+    if supernetwork_parameters["network_type"] == "HYFeaturesNetwork":
+        network = HYFeaturesNetwork(
+            supernetwork_parameters,
+            waterbody_parameters,
+            data_assimilation_parameters,
+            restart_parameters,
+            compute_parameters,
+            forcing_parameters,
+            hybrid_parameters,
+            preprocessing_parameters,
+            output_parameters,
+            verbose=True,
+            showtiming=showtiming,
+        )
         duplicate_ids_df = network._duplicate_ids_df
 
-    elif supernetwork_parameters["network_type"] == 'NHDNetwork':
-        network = NHDNetwork(supernetwork_parameters,
-                             waterbody_parameters,
-                             restart_parameters,
-                             forcing_parameters,
-                             compute_parameters,
-                             data_assimilation_parameters,
-                             hybrid_parameters,
-                             output_parameters,
-                             verbose=True,
-                             showtiming=showtiming,
-                            )
+    elif supernetwork_parameters["network_type"] == "NHDNetwork":
+        network = NHDNetwork(
+            supernetwork_parameters,
+            waterbody_parameters,
+            restart_parameters,
+            forcing_parameters,
+            compute_parameters,
+            data_assimilation_parameters,
+            hybrid_parameters,
+            output_parameters,
+            verbose=True,
+            showtiming=showtiming,
+        )
         duplicate_ids_df = pd.DataFrame()
 
-
     network_end_time = time.time()
-    task_times['network_creation_time'] = network_end_time - network_start_time
+    task_times["network_creation_time"] = network_end_time - network_start_time
 
     # Create run_sets: sets of forcing files for each loop
     run_sets = network.build_forcing_sets()
@@ -114,7 +122,9 @@ def main_v04(argv):
         parity_sets = []
 
     # Create forcing data within network object for first loop iteration
-    network.assemble_forcings(run_sets[0],)
+    network.assemble_forcings(
+        run_sets[0],
+    )
 
     # Create data assimilation object from da_sets for first loop iteration
     data_assimilation = DataAssimilation(
@@ -125,11 +135,10 @@ def main_v04(argv):
         from_files=True,
         value_dict=None,
         da_run=da_sets[0],
-        )
-
+    )
 
     forcing_end_time = time.time()
-    task_times['forcing_time'] += forcing_end_time - network_end_time
+    task_times["forcing_time"] += forcing_end_time - network_end_time
 
     parallel_compute_method = compute_parameters.get("parallel_compute_method", None)
     subnetwork_target_size = compute_parameters.get("subnetwork_target_size", 1)
@@ -138,33 +147,37 @@ def main_v04(argv):
     assume_short_ts = compute_parameters.get("assume_short_ts", False)
     return_courant = compute_parameters.get("return_courant", False)
 
-    logFileName = 'NONE'
+    logFileName = "NONE"
     kernelTalks = log_parameters.get("log_directory", None)
     if kernelTalks:
-        logFileName = kernelTalks+'/kernelTalks.log'
-        with open(logFileName, 'w') as preRunLog:
+        logFileName = kernelTalks + "/kernelTalks.log"
+        with open(logFileName, "w") as preRunLog:
             preRunLog.write("************************************************************\n")
             preRunLog.write("Pre- and post run parameter and run statistics output file. \n")
             preRunLog.write("************************************************************\n")
             preRunLog.write("\n")
             preRunLog.write("-----\n")
 
-            if (restart_parameters['lite_channel_restart_file']==None):
+            if restart_parameters["lite_channel_restart_file"] == None:
                 outPutStr = "No channel restart file: cold start."
-                preRunLog.write(outPutStr+"\n")
+                preRunLog.write(outPutStr + "\n")
                 LOG.info(outPutStr)
             else:
-                outPutStr = "Warmstart - restart file: "+restart_parameters['lite_channel_restart_file']
-                preRunLog.write(outPutStr+" \n")
+                outPutStr = (
+                    "Warmstart - restart file: " + restart_parameters["lite_channel_restart_file"]
+                )
+                preRunLog.write(outPutStr + " \n")
                 LOG.info(outPutStr)
 
-            if (restart_parameters['lite_waterbody_restart_file']==None):
+            if restart_parameters["lite_waterbody_restart_file"] == None:
                 outPutStr = "No waterbody restart file."
-                preRunLog.write(outPutStr+"\n")
+                preRunLog.write(outPutStr + "\n")
                 LOG.info(outPutStr)
             else:
-                outPutStr = "Waterbody restart file: "+restart_parameters['lite_waterbody_restart_file']
-                preRunLog.write(outPutStr+" \n")
+                outPutStr = (
+                    "Waterbody restart file: " + restart_parameters["lite_waterbody_restart_file"]
+                )
+                preRunLog.write(outPutStr + " \n")
                 LOG.info(outPutStr)
 
             preRunLog.write("-----\n")
@@ -179,11 +192,10 @@ def main_v04(argv):
     # Flag for first run for param output
     firstRun = True
     # Disable in case there is no log file
-    if (not kernelTalks):
+    if not kernelTalks:
         firstRun = False
 
     for run_set_iterator, run in enumerate(run_sets):
-
         t0 = run.get("t0")
         dt = run.get("dt")
         nts = run.get("nts")
@@ -191,7 +203,6 @@ def main_v04(argv):
         if parity_sets:
             parity_sets[run_set_iterator]["dt"] = dt
             parity_sets[run_set_iterator]["nts"] = nts
-
 
         route_start_time = time.time()
 
@@ -238,50 +249,48 @@ def main_v04(argv):
             network.coastal_boundary_depth_df,
             network.unrefactored_topobathy_df,
             firstRun,
-            logFileName
+            logFileName,
         )
 
         # returns list, first item is run result, second item is subnetwork items
         subnetwork_list = run_results[1]
         run_results = run_results[0]
 
-
         route_end_time = time.time()
-        task_times['route_time'] += route_end_time - route_start_time
+        task_times["route_time"] += route_end_time - route_start_time
 
         # create initial conditions for next loop itteration
         network.new_q0(run_results)
         network.update_waterbody_water_elevation()
 
         # update reservoir parameters and lastobs_df
-        data_assimilation.update_after_compute(run_results, dt*nts)
+        data_assimilation.update_after_compute(run_results, dt * nts)
 
         # TODO move the conditional call to write_lite_restart to nwm_output_generator.
         if output_parameters:
-            if output_parameters['lite_restart'] is not None:
+            if output_parameters["lite_restart"] is not None:
                 nhd_io.write_lite_restart(
                     network.q0,
                     network._waterbody_df,
-                    t0 + timedelta(seconds = dt * nts),
-                    output_parameters['lite_restart']
+                    t0 + timedelta(seconds=dt * nts),
+                    output_parameters["lite_restart"],
                 )
 
         # Prepare input forcing for next time loop simulation when mutiple time loops are presented.
         if run_set_iterator < len(run_sets) - 1:
             # update t0
-            network.new_t0(dt,nts)
+            network.new_t0(dt, nts)
 
             # update forcing data
-            network.assemble_forcings(run_sets[run_set_iterator + 1],)
+            network.assemble_forcings(
+                run_sets[run_set_iterator + 1],
+            )
 
             # get reservoir DA initial parameters for next loop iteration
-            data_assimilation.update_for_next_loop(
-                network,
-                da_sets[run_set_iterator + 1])
-
+            data_assimilation.update_for_next_loop(network, da_sets[run_set_iterator + 1])
 
             forcing_end_time = time.time()
-            task_times['forcing_time'] += forcing_end_time - route_end_time
+            task_times["forcing_time"] += forcing_end_time - route_end_time
 
         if network.poi_nex_dict:
             poi_crosswalk = network.poi_nex_dict
@@ -290,7 +299,7 @@ def main_v04(argv):
 
         output_start_time = time.time()
 
-        #TODO Update this to work with either network type...
+        # TODO Update this to work with either network type...
         nwm_output_generator(
             run,
             run_results,
@@ -311,112 +320,99 @@ def main_v04(argv):
             network.link_lake_crosswalk,
             network.nexus_dict,
             poi_crosswalk,
-            logFileName
+            logFileName,
         )
 
-
         output_end_time = time.time()
-        task_times['output_time'] += output_end_time - output_start_time
+        task_times["output_time"] += output_end_time - output_start_time
 
         firstRun = False
 
     # end of for run_set_iterator, run in enumerate(run_sets):
 
-
-    task_times['total_time'] = time.time() - main_start_time
+    task_times["total_time"] = time.time() - main_start_time
 
     LOG.debug("process complete in %s seconds." % (time.time() - main_start_time))
 
-    LOG.info('************ TIMING SUMMARY ************')
-    LOG.info('----------------------------------------')
+    LOG.info("************ TIMING SUMMARY ************")
+    LOG.info("----------------------------------------")
     LOG.info(
-        'Network graph construction: {} secs, {} %'\
-        .format(
-            round(task_times['network_creation_time'], 2),
-            round(task_times['network_creation_time'] / task_times['total_time'] * 100, 2)
+        "Network graph construction: {} secs, {} %".format(
+            round(task_times["network_creation_time"], 2),
+            round(task_times["network_creation_time"] / task_times["total_time"] * 100, 2),
         )
     )
     LOG.info(
-        'Forcing array construction: {} secs, {} %'\
-        .format(
-            round(task_times['forcing_time'], 2),
-            round(task_times['forcing_time'] / task_times['total_time'] * 100, 2)
+        "Forcing array construction: {} secs, {} %".format(
+            round(task_times["forcing_time"], 2),
+            round(task_times["forcing_time"] / task_times["total_time"] * 100, 2),
         )
     )
     LOG.info(
-        'Routing computations: {} secs, {} %'\
-        .format(
-            round(task_times['route_time'], 2),
-            round(task_times['route_time'] / task_times['total_time'] * 100, 2)
+        "Routing computations: {} secs, {} %".format(
+            round(task_times["route_time"], 2),
+            round(task_times["route_time"] / task_times["total_time"] * 100, 2),
         )
     )
     LOG.info(
-        'Output writing: {} secs, {} %'\
-        .format(
-            round(task_times['output_time'], 2),
-            round(task_times['output_time'] / task_times['total_time'] * 100, 2)
+        "Output writing: {} secs, {} %".format(
+            round(task_times["output_time"], 2),
+            round(task_times["output_time"] / task_times["total_time"] * 100, 2),
         )
     )
-    LOG.info('----------------------------------------')
+    LOG.info("----------------------------------------")
     LOG.info(
-        'Total execution time: {} secs'\
-        .format(
-            round(task_times['network_creation_time'], 2) +
-            round(task_times['forcing_time'], 2) +
-            round(task_times['route_time'], 2) +
-            round(task_times['output_time'], 2)
+        "Total execution time: {} secs".format(
+            round(task_times["network_creation_time"], 2)
+            + round(task_times["forcing_time"], 2)
+            + round(task_times["route_time"], 2)
+            + round(task_times["output_time"], 2)
         )
     )
 
-    if showtiming and log_parameters.get('log_level') not in ['DEBUG', 'INFO']:
-        print('************ TIMING SUMMARY ************')
-        print('----------------------------------------')
+    if showtiming and log_parameters.get("log_level") not in ["DEBUG", "INFO"]:
+        print("************ TIMING SUMMARY ************")
+        print("----------------------------------------")
         print(
-            'Network graph construction: {} secs, {} %'\
-            .format(
-                round(task_times['network_creation_time'],2),
-                round(task_times['network_creation_time']/task_times['total_time'] * 100,2)
+            "Network graph construction: {} secs, {} %".format(
+                round(task_times["network_creation_time"], 2),
+                round(task_times["network_creation_time"] / task_times["total_time"] * 100, 2),
             )
         )
         print(
-            'Forcing array construction: {} secs, {} %'\
-            .format(
-                round(task_times['forcing_time'],2),
-                round(task_times['forcing_time']/task_times['total_time'] * 100,2)
+            "Forcing array construction: {} secs, {} %".format(
+                round(task_times["forcing_time"], 2),
+                round(task_times["forcing_time"] / task_times["total_time"] * 100, 2),
             )
         )
         print(
-            'Routing computations: {} secs, {} %'\
-            .format(
-                round(task_times['route_time'],2),
-                round(task_times['route_time']/task_times['total_time'] * 100,2)
+            "Routing computations: {} secs, {} %".format(
+                round(task_times["route_time"], 2),
+                round(task_times["route_time"] / task_times["total_time"] * 100, 2),
             )
         )
         print(
-            'Output writing: {} secs, {} %'\
-            .format(
-                round(task_times['output_time'],2),
-                round(task_times['output_time']/task_times['total_time'] * 100,2)
+            "Output writing: {} secs, {} %".format(
+                round(task_times["output_time"], 2),
+                round(task_times["output_time"] / task_times["total_time"] * 100, 2),
             )
         )
-        print('----------------------------------------')
+        print("----------------------------------------")
         print(
-            'Total execution time: {} secs'\
-            .format(
-                round(task_times['network_creation_time'],2) +
-                round(task_times['forcing_time'],2) +
-                round(task_times['route_time'],2) +
-                round(task_times['output_time'],2)
+            "Total execution time: {} secs".format(
+                round(task_times["network_creation_time"], 2)
+                + round(task_times["forcing_time"], 2)
+                + round(task_times["route_time"], 2)
+                + round(task_times["output_time"], 2)
             )
         )
+
 
 def _handle_args_v03(argv):
-    '''
+    """
     Handle command line input argument - filepath of configuration file
-    '''
-    parser = argparse.ArgumentParser(
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter
-    )
+    """
+    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument(
         "-f",
         "--custom-input-file",
@@ -424,6 +420,7 @@ def _handle_args_v03(argv):
         help="Path of a .yaml or .json file containing model configuration parameters. See doc/v3_doc.yaml",
     )
     return parser.parse_args(argv)
+
 
 def nwm_route(
     downstream_connections,
@@ -468,22 +465,19 @@ def nwm_route(
     coastal_boundary_depth_df,
     unrefactored_topobathy_df,
     firstRun=False,
-    logFileName='troute_run_log.txt',
+    logFileName="troute_run_log.txt",
     flowveldepth_interorder={},
     from_files=False,
 ):
-
     ################### Main Execution Loop across ordered networks
     start_time = time.time()
 
     if return_courant:
-        LOG.info(
-            "executing routing computation, with Courant evaluation metrics returned"
-        )
+        LOG.info("executing routing computation, with Courant evaluation metrics returned")
     else:
         LOG.info("executing routing computation ...")
 
-    if (firstRun):
+    if firstRun:
         compute_log_mc(
             logFileName,
             downstream_connections,
@@ -555,7 +549,7 @@ def nwm_route(
         waterbody_type_specified,
         subnetwork_list,
         flowveldepth_interorder,
-        from_files = from_files,
+        from_files=from_files,
     )
     LOG.debug("MC computation complete in %s seconds." % (time.time() - start_time_mc))
     # returns list, first item is run result, second item is subnetwork items
@@ -565,7 +559,7 @@ def nwm_route(
     # run diffusive side of a hybrid simulation
     if diffusive_network_data:
         start_time_diff = time.time()
-        '''
+        """
         # retrieve MC-computed streamflow value at upstream boundary of diffusive mainstem
         qvd_columns = pd.MultiIndex.from_product(
             [range(nts), ["q", "v", "d"]]
@@ -574,15 +568,15 @@ def nwm_route(
             [pd.DataFrame(r[1], index=r[0], columns=qvd_columns) for r in results],
             copy=False,
         )
-        '''
-        #upstream_boundary_flow={}
-        #for tw,v in  diffusive_network_data.items():
+        """
+        # upstream_boundary_flow={}
+        # for tw,v in  diffusive_network_data.items():
         #    upstream_boundary_link     = diffusive_network_data[tw]['upstream_boundary_link']
         #    flow_              = flowveldepth.loc[upstream_boundary_link][0::3]
-            # the very first value at time (0,q) is flow value at the first time step after initial time.
+        # the very first value at time (0,q) is flow value at the first time step after initial time.
         #    upstream_boundary_flow[tw] = flow_
 
-        if (firstRun):
+        if firstRun:
             compute_log_diff(
                 logFileName,
                 diffusive_network_data,
@@ -619,9 +613,8 @@ def nwm_route(
         LOG.debug("Diffusive computation complete in %s seconds." % (time.time() - start_time_diff))
 
     else:
-
-        if (firstRun):
-            with open(logFileName, 'a') as preRunLog:
+        if firstRun:
+            with open(logFileName, "a") as preRunLog:
                 preRunLog.write("**********************\n")
                 preRunLog.write("No diffusive routing. \n")
                 preRunLog.write("**********************\n")
@@ -631,10 +624,9 @@ def nwm_route(
 
     return results, subnetwork_list
 
+
 def main():
-    v_parser = argparse.ArgumentParser(
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter
-    )
+    v_parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     v_parser.add_argument(
         "-V",
         "--input-version",
@@ -646,9 +638,9 @@ def main():
     )
     v_args = v_parser.parse_known_args()
 
-
     LOG.info("Running main v04 - looping")
     main_v04(v_args[1])
+
 
 if __name__ == "__main__":
     main()

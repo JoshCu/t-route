@@ -10,6 +10,7 @@ class NetworkTopologyParameters(BaseModel):
     """
     Parameters controlling how the stream network is synthesized.
     """
+
     preprocessing_parameters: "PreprocessingParameters" = Field(default_factory=dict)
     supernetwork_parameters: "SupernetworkParameters"
     waterbody_parameters: "WaterbodyParameters" = Field(default_factory=dict)
@@ -19,6 +20,7 @@ class PreprocessingParameters(BaseModel):
     """
     Parameters controlling the creation and use of preprocessed network graph data.
     """
+
     preprocess_only: bool = False
     """
     If True, then network graph objects will be created, saved to disk, and then the execution will stop.
@@ -49,6 +51,7 @@ class SupernetworkParameters(BaseModel):
     """
     Parameters specific to the stream network.
     """
+
     title_string: Optional[str] = None
     """
     Used for simulation identification. Appears in csv filename, if csv oupt is used.
@@ -107,106 +110,106 @@ class SupernetworkParameters(BaseModel):
 
     driver_string: Union[str, Literal["NetCDF"]] = "NetCDF"
     layer_string: int = 0
-    
+
     @validator("columns", always=True)
     def get_columns(cls, columns: dict, values: Dict[str, Any]) -> dict:
         if columns is None:
-            if values['network_type']=="HYFeaturesNetwork":
+            if values["network_type"] == "HYFeaturesNetwork":
                 default_columns = {
-                    'key'       : 'id',
-                    'downstream': 'toid',
-                    'dx'        : 'length_m',
-                    'n'         : 'n',
-                    'ncc'       : 'nCC',
-                    's0'        : 'So',
-                    'bw'        : 'BtmWdth',
-                    'waterbody' : 'rl_NHDWaterbodyComID',
-                    'gages'     : 'rl_gages',
-                    'tw'        : 'TopWdth',
-                    'twcc'      : 'TopWdthCC',
-                    'musk'      : 'MusK',
-                    'musx'      : 'MusX',
-                    'cs'        : 'ChSlp',
-                    'alt'       : 'alt',
-                    'mainstem'  : 'mainstem',
-                    }
+                    "key": "id",
+                    "downstream": "toid",
+                    "dx": "length_m",
+                    "n": "n",
+                    "ncc": "nCC",
+                    "s0": "So",
+                    "bw": "BtmWdth",
+                    "waterbody": "rl_NHDWaterbodyComID",
+                    "gages": "rl_gages",
+                    "tw": "TopWdth",
+                    "twcc": "TopWdthCC",
+                    "musk": "MusK",
+                    "musx": "MusX",
+                    "cs": "ChSlp",
+                    "alt": "alt",
+                    "mainstem": "mainstem",
+                }
             else:
                 default_columns = {
-                    'key'       : 'link',
-                    'downstream': 'to',
-                    'dx'        : 'Length',
-                    'n'         : 'n',
-                    'ncc'       : 'nCC',
-                    's0'        : 'So',
-                    'bw'        : 'BtmWdth',
-                    'waterbody' : 'NHDWaterbodyComID',
-                    'gages'     : 'gages',
-                    'tw'        : 'TopWdth',
-                    'twcc'      : 'TopWdthCC',
-                    'alt'       : 'alt',
-                    'musk'      : 'MusK',
-                    'musx'      : 'MusX',
-                    'cs'        : 'ChSlp',
-                    }
+                    "key": "link",
+                    "downstream": "to",
+                    "dx": "Length",
+                    "n": "n",
+                    "ncc": "nCC",
+                    "s0": "So",
+                    "bw": "BtmWdth",
+                    "waterbody": "NHDWaterbodyComID",
+                    "gages": "gages",
+                    "tw": "TopWdth",
+                    "twcc": "TopWdthCC",
+                    "alt": "alt",
+                    "musk": "MusK",
+                    "musx": "MusX",
+                    "cs": "ChSlp",
+                }
         else:
             default_columns = columns
         return default_columns
 
 
 class Columns(BaseModel):
-    key: str 
+    key: str
     """
     unique segment identifier
     """
-    downstream: str 
+    downstream: str
     """
     unique identifier of downstream segment
     """
-    dx: str 
+    dx: str
     """
     segment length
     """
-    n: str 
+    n: str
     """
     manning's roughness of main channel
     """
-    ncc: str 
+    ncc: str
     """
     mannings roughness of compound channel
     """
-    s0: str 
+    s0: str
     """
     channel slope
     """
-    bw: str 
+    bw: str
     """
     channel bottom width
     """
-    waterbody: Optional[str] 
+    waterbody: Optional[str]
     """
     waterbody identifier
     """
-    tw: str 
+    tw: str
     """
     channel top width
     """
-    twcc: str 
+    twcc: str
     """
     compound channel top width
     """
-    alt: Optional[str] 
+    alt: Optional[str]
     """
     channel bottom altitude
     """
-    musk: str 
+    musk: str
     """
     muskingum K parameter
-    """ 
-    musx: str 
+    """
+    musx: str
     """
     muskingum X parameter
     """
-    cs: str 
+    cs: str
     """
     channel sideslope
     """
@@ -224,6 +227,7 @@ class WaterbodyParameters(BaseModel):
     """
     Parameters specifying how (if) waterbodies are handled.
     """
+
     break_network_at_waterbodies: bool = False
     """
     If True, waterbodies will be treated as reservoirs. If False, the underlying flowpaths will be used for channel routing.
@@ -239,6 +243,7 @@ class LevelPool(BaseModel):
     """
     Attributes of the lake geometry file for levelpool simulations.
     """
+
     level_pool_waterbody_parameter_file_path: Optional[FilePath] = None
     """
     Filepath for NetCDF file containing lake parameters (LAKEPARM). Only used for NHD networks.
@@ -254,4 +259,3 @@ PreprocessingParameters.update_forward_refs()
 SupernetworkParameters.update_forward_refs()
 WaterbodyParameters.update_forward_refs()
 LevelPool.update_forward_refs()
-

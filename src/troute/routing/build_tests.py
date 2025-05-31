@@ -6,6 +6,7 @@
 Test v02 routing on specific test cases
 
 """
+
 ## Parallel execution
 import numpy as np
 import pathlib
@@ -30,9 +31,7 @@ def build_test_parameters(
     forcing_parameters,
     parity_parameters,
 ):
-
     if test_name == "pocono1":
-
         print("running test case for Pocono_TEST1 domain - NO RESERVOIRS")
 
         # File path to WRF Hydro data
@@ -87,12 +86,8 @@ def build_test_parameters(
         restart_parameters["wrf_hydro_channel_restart_file"] = wrf_hydro_restart_file
         restart_parameters["wrf_hydro_channel_ID_crosswalk_file"] = routelink_file
         restart_parameters["wrf_hydro_channel_ID_crosswalk_file_field_name"] = "link"
-        restart_parameters[
-            "wrf_hydro_channel_restart_upstream_flow_field_name"
-        ] = "qlink1"
-        restart_parameters[
-            "wrf_hydro_channel_restart_downstream_flow_field_name"
-        ] = "qlink2"
+        restart_parameters["wrf_hydro_channel_restart_upstream_flow_field_name"] = "qlink1"
+        restart_parameters["wrf_hydro_channel_restart_downstream_flow_field_name"] = "qlink2"
         restart_parameters["wrf_hydro_channel_restart_depth_flow_field_name"] = "hlink"
 
         # specify restart parameters
@@ -168,9 +163,7 @@ def parity_check(
         parity_check_input_folder = pathlib.Path(parity_check_input_folder)
         if "validation_files" in parity_set:
             validation_files = parity_set.get("validation_files")
-            validation_files = [
-                parity_check_input_folder.joinpath(f) for f in validation_files
-            ]
+            validation_files = [parity_check_input_folder.joinpath(f) for f in validation_files]
         elif "parity_check_file_pattern_filter" in parity_set:
             validation_files = sorted(
                 pathlib.Path(parity_set["parity_check_input_folder"]).rglob(
@@ -193,17 +186,13 @@ def parity_check(
         validation_data = validation_data.sort_index(axis="index")
 
     elif parity_check_waterbody_file:
-        validation_data = pd.read_csv(
-            parity_set["parity_check_waterbody_file"], index_col=0
-        )
+        validation_data = pd.read_csv(parity_set["parity_check_waterbody_file"], index_col=0)
 
         if not parity_check_water_elevation:
             validation_data.rename(columns={"outflow": compare_node}, inplace=True)
         # TODO: Add toggle option to compare water elevation
         else:
-            validation_data.rename(
-                columns={"water_sfc_elev": compare_node}, inplace=True
-            )
+            validation_data.rename(columns={"water_sfc_elev": compare_node}, inplace=True)
         validation_data = validation_data[[compare_node]]
         validation_data.index = validation_data.index.astype("datetime64[ns]")
         validation_data = validation_data.transpose()
@@ -279,9 +268,7 @@ def parity_check(
         compare["rel_diff"] = (
             compare["flow, t-route (cms)"] - compare["flow, wrf (cms)"]
         ) / compare["flow, wrf (cms)"]
-        compare["absdiff"] = np.abs(
-            compare["flow, t-route (cms)"] - compare["flow, wrf (cms)"]
-        )
+        compare["absdiff"] = np.abs(compare["flow, t-route (cms)"] - compare["flow, wrf (cms)"])
         compare["rel_absdiff"] = np.abs(
             (compare["flow, t-route (cms)"] - compare["flow, wrf (cms)"])
             / compare["flow, wrf (cms)"]
