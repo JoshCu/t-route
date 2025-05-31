@@ -1,5 +1,4 @@
 from setuptools import setup, Extension, Command
-import sys
 import numpy as np
 import os
 import subprocess

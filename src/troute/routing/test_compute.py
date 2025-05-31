@@ -2,11 +2,6 @@ import numpy as np
 # from compute import _prep_da_positions_byreach
 # from compute import _prep_da_dataframes
 import pytest
-from troute.routing.fast_reach.mc_reach import (
-    compute_network,
-    compute_network_structured,
-    compute_network_structured_obj,
-)
 from troute.routing.fast_reach.simple_da import simple_da_with_decay_py
 
 

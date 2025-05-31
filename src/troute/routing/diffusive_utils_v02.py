@@ -1,9 +1,8 @@
 import numpy as np
-from functools import partial, reduce
+from functools import partial
 import troute.network.nhd_network as nhd_network
-from datetime import datetime, timedelta
+from datetime import timedelta
 import pandas as pd
-from collections import Counter
 import math
 
 

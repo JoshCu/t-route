@@ -7,21 +7,11 @@ Test v02 routing on specific test cases
 
 """
 ## Parallel execution
-import sys
-import time
 import numpy as np
-import argparse
 import pathlib
 import pandas as pd
-from functools import partial
-from joblib import delayed, Parallel
-from itertools import chain, islice
-from operator import itemgetter
 
 ## network and reach utilities
-import troute.routing.compute as nhd_compute
-import troute.network.nhd_network_utilities_v02 as nnu
-import troute.network.nhd_network as nhd_network
 import troute.network.nhd_io as nhd_io
 
 ENV_IS_CL = False

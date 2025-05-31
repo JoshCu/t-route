@@ -5,7 +5,6 @@ from datetime import *
 import yaml
 
 import troute.network.nhd_io as nhd_io
-import troute.network.nhd_network_utilities_v02 as nnu
 from .log_level_set import log_level_set
 from troute.config import Config
 
@@ -192,7 +191,7 @@ def _does_file_exist(parameter_name, filepath_input):
         sys.exit()
 
     # parameter is not provided by the user
-    except KeyError as err:
+    except KeyError:
         LOG.error(
             'A %s parameter is not provided in the configuration file',
             parameter_name
@@ -239,7 +238,7 @@ def _does_path_exist(parameter_name, directory_path_input):
         )
         sys.exit()
 
-    except KeyError as err:
+    except KeyError:
         LOG.error(
             'A %s parameter must be specified in the configuration file'
             ,

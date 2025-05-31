@@ -149,7 +149,6 @@ expected_wbody_connections = {4: 403, 5: 403, 16: 401, 17: 401, 21: 401, 26: 402
 # [(0, ['down'])]
 
 import pandas as pd
-import troute.nhd_network_utilities_v02 as nnu
 import troute.nhd_network as nhd_network
 
 test_param_df = pd.DataFrame(network_clean)

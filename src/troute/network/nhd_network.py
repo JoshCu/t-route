@@ -1,7 +1,6 @@
-from collections import defaultdict, Counter, deque
+from collections import defaultdict, deque
 from itertools import chain
 from functools import reduce, partial
-from collections.abc import Iterable
 from toolz import pluck
 from deprecated import deprecated
 #Consider using sphinx for inlining deprecation into docstrings

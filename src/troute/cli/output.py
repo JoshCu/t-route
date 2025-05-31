@@ -2,7 +2,7 @@ import time
 import numpy as np
 import pandas as pd
 from pathlib import Path
-from datetime import datetime, timedelta
+from datetime import datetime
 import troute.network.nhd_io as nhd_io
 from troute.routing.build_tests import parity_check
 import logging
@@ -177,7 +177,7 @@ def nwm_output_generator(
 
     start_time = time.time()
 
-    LOG.info(f"Handling output ...")
+    LOG.info("Handling output ...")
 
     csv_output = output_parameters.get("csv_output", None)
     csv_output_folder = None

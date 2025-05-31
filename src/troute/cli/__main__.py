@@ -22,13 +22,11 @@ from .preprocess import (
     unpack_nwm_preprocess_data,
 )
 from .output import nwm_output_generator
-from .log_level_set import log_level_set
 from troute.routing.compute import compute_nhd_routing_v02, compute_diffusive_routing, compute_log_mc, compute_log_diff
 
 import troute.network.nhd_io as nhd_io
 import troute.network.nhd_network_utilities_v02 as nnu
 import troute.network.hyfeature_network_utilities as hnu
-import sys
 
 
 LOG = logging.getLogger('')
@@ -807,10 +805,10 @@ def _run_everything_v02(
     if verbose:
         if run_parameters.get("return_courant", False):
             print(
-                f"executing routing computation, with Courant evaluation metrics returned"
+                "executing routing computation, with Courant evaluation metrics returned"
             )
         else:
-            print(f"executing routing computation ...")
+            print("executing routing computation ...")
 
     # TODO: align compute_kernel and compute_method in run_parameters
     if run_parameters.get("compute_kernel", None):
@@ -878,7 +876,7 @@ def _handle_output_v02(
     if showtiming:
         start_time = time.time()
     if verbose:
-        print(f"Handling output ...")
+        print("Handling output ...")
 
     csv_output = output_parameters.get("csv_output", None)
     csv_output_folder = None
@@ -1172,10 +1170,10 @@ def nwm_route(
 
     if return_courant:
         LOG.info(
-            f"executing routing computation, with Courant evaluation metrics returned"
+            "executing routing computation, with Courant evaluation metrics returned"
         )
     else:
-        LOG.info(f"executing routing computation ...")
+        LOG.info("executing routing computation ...")
 
     if (firstRun):
         compute_log_mc(

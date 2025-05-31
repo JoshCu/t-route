@@ -13,7 +13,7 @@ import xarray as xr
 from pprint import pformat
 import os
 import troute.network.nhd_io as nhd_io #FIXME
-from troute.network.nhd_network import reverse_dict, extract_connections, reverse_network, reachable
+from troute.network.nhd_network import reverse_dict, extract_connections, reverse_network
 from .rfc_lake_gage_crosswalk import get_rfc_lake_gage_crosswalk, get_great_lakes_climatology
 import re
 __verbose__ = False

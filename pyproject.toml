@@ -102,6 +102,11 @@ include = ["troute*"]
 [options]
 include_package_data = true
 
+[dependency-groups]
+dev = [
+    "ruff>=0.11.12",
+]
+
 [tool.black]
 line-length = 88
 target-version = ["py39"]

@@ -1500,7 +1500,7 @@ def build_lastobs_df(
             'lastobs_discharge',
         ]
     ]
-    LOG.debug(f"Building last observation dataframe completed in %s seconds." % (time.time() - build_lastobs_start_time))
+    LOG.debug("Building last observation dataframe completed in %s seconds." % (time.time() - build_lastobs_start_time))
     return lastobs_df
 
 def new_lastobs(run_results, time_increment):
@@ -1640,7 +1640,7 @@ def read_reservoir_parameter_file(
     if rfc_forecast == False:
         df1[df1['reservoir_type'] == 4] = 1
 
-    LOG.debug(f"Reading and processing reservoir is completed in %s seconds." % (time.time() - read_reservoir_start_time))
+    LOG.debug("Reading and processing reservoir is completed in %s seconds." % (time.time() - read_reservoir_start_time))
     return df1, usgs_crosswalk, usace_crosswalk
 
 def _timeslice_qcqa(discharge,
@@ -2046,7 +2046,7 @@ def _read_lastobs_file(
     lastobs_df = pd.DataFrame(data = data_var_dict)
     lastobs_df['gages'] = lastobs_df['gages'].str.decode('utf-8')
 
-    LOG.debug(f"Reading last observation file is completed in %s seconds." % (time.time() - read_lastobs_start_time))
+    LOG.debug("Reading last observation file is completed in %s seconds." % (time.time() - read_lastobs_start_time))
     return lastobs_df
 
 def _create_GL_dfs(GL_crosswalk_df, data_assimilation_parameters, run_parameters,

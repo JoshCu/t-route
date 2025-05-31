@@ -1,7 +1,6 @@
 import numpy as np
 import pandas as pd
-from datetime import datetime, timedelta
-import xarray as xr
+from datetime import timedelta
 
 
 def _unflatten_array(array_1D,nx,ny):

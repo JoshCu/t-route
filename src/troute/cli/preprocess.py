@@ -6,7 +6,6 @@ from collections import defaultdict
 
 import pandas as pd
 import numpy as np
-import xarray as xr
 
 import troute.network.nhd_network_utilities_v02 as nnu
 import troute.network.nhd_network as nhd_network

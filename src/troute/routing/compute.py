@@ -2,12 +2,11 @@ from collections import defaultdict
 from itertools import chain
 from functools import partial
 from joblib import delayed, Parallel
-from datetime import datetime, timedelta
+from datetime import datetime
 import time
 import pandas as pd
 import numpy as np
 import copy
-import os.path
 
 import troute.network.nhd_network as nhd_network
 from troute.routing.fast_reach.mc_reach import compute_network_structured

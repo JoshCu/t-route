@@ -2,7 +2,7 @@
 from array import array
 from troute.network.reservoirs.rfc.rfc import MC_RFC
 from troute.network.reservoirs.levelpool.levelpool import MC_Levelpool
-from troute.routing.fast_reach.reservoir_RFC_da import reservoir_RFC_da, reservoir_RFC_da_v2
+from troute.routing.fast_reach.reservoir_RFC_da import reservoir_RFC_da_v2
 
 import xarray as xr
 import numpy as np

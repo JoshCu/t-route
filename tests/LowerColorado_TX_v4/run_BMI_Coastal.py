@@ -1,10 +1,7 @@
 import sys
-import glob
 import os
 import numpy as np
 import pandas as pd
-import geopandas as gpd
-import pickle
 from datetime import datetime, timedelta
 import time
 
@@ -19,7 +16,6 @@ import bmi_DAforcing
 
 #import troute_model
 
-from troute.HYFeaturesNetwork import HYFeaturesNetwork
 from troute.AbstractNetwork import *
 
 import bmi_df2array as df2a
