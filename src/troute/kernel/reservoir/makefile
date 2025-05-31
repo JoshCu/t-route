@@ -1,4 +1,4 @@
-NETCDFINC := -I /usr/include
+NETCDFINC := -I$(NETCDFINC) $(shell nc-config --fflags) -I/usr/include
 NETCDFLIB := $(shell nc-config --flibs)
 COMPILER90 = $(F90)
 
@@ -17,8 +17,9 @@ ARFLAGS = rc
 
 VPATH = ./Level_Pool ./Persistence_Level_Pool_Hybrid ./RFC_Forecasts
 
-.PHONY: all install install_lp
+.NOTPARALLEL:
 
+.PHONY: all install install_lp
 all: binding_lp.a bind_rfc.a
 
 test_main: test_main.o binding_lp.a bind_rfc.a
@@ -48,11 +49,10 @@ bind_rfc.a: module_reservoir.o module_hydro_stop.o module_reservoir_utilities.o 
 	$(COMPILER90) $(F90FLAGS) $(NETCDFLIB) -c -o $@ $<
 
 install_lp: binding_lp.a
-	cp $< ../../network/libs;
+	cp $< ../../troute-network/libs;
 
 install_rfc: bind_rfc.a
-	cp $< ../../network/libs;
-
+	cp $< ../../troute-network/libs;
 clean:
 	rm -f *.o
 	rm -f *.mod

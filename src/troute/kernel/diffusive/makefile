@@ -1,6 +1,5 @@
 # compiler
 FC := ${F90}
-
 # compile flags
 F90FLAGSGFORTRAN = -g -c -O2 -fPIC -fbounds-check
 F90FLAGSINTEL = -free -g -c -O2 -fPIC -I${NETCDF}/include
@@ -17,15 +16,14 @@ all: diffusive.o pydiffusive.o chxsec_lookuptable.o pychxsec_lookuptable.o
 diffusive.o: diffusive.f90
 	$(FC) $(FCFLAGS) -o $@ $<
 
-pydiffusive.o: pydiffusive.f90
+pydiffusive.o: pydiffusive.f90 diffusive.o
 	$(FC) $(FCFLAGS) -o $@ $<
 
 chxsec_lookuptable.o: chxsec_lookuptable.f90
 	$(FC) $(FCFLAGS) -o $@ $<
 
-pychxsec_lookuptable.o: pychxsec_lookuptable.f90
+pychxsec_lookuptable.o: pychxsec_lookuptable.f90 chxsec_lookuptable.o
 	$(FC) $(FCFLAGS) -o $@ $<
-
 
 install:
 	cp *.o ../../routing/fast_reach

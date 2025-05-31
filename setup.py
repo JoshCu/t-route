@@ -17,8 +17,11 @@ class BuildFortran(Command):
         pass
 
     def run(self):
-
-        # Build reservoir kernels
+        fc = os.environ.get('FC') or os.environ.get('F90') or subprocess.run(['which', 'fc'], capture_output=True).stdout.decode('UTF-8').strip()
+        fc = "gfortran"
+        os.environ["F90"] = fc
+        os.environ["NETCDFINC"] = "/usr/lib64/gfortran/modules/"
+        # Build kernels
         print("Building Fortran muskingum kernel...")
         subprocess.check_call(['make', '-C', 'src/troute/kernel/muskingum'])
         print("Building Fortran diffusive kernel...")
