@@ -1,4 +1,4 @@
-from .AbstractNetwork import AbstractNetwork
+from .AbstractNetwork import AbstractNetwork, read_file
 import pandas as pd
 import numpy as np
 import geopandas as gpd
@@ -976,23 +976,6 @@ class HYFeaturesNetwork(AbstractNetwork):
             self._usgs_lake_gage_crosswalk = inputs.get("usgs_lake_gage_crosswalk", None)
             self._usace_lake_gage_crosswalk = inputs.get("usace_lake_gage_crosswalk", None)
             self._rfc_lake_gage_crosswalk = inputs.get("rfc_lake_gage_crosswalk", None)
-
-
-def read_file(file_name):
-    extension = file_name.suffix
-    if extension == ".csv":
-        df = pd.read_csv(file_name)
-    elif extension == ".parquet":
-        df = pq.read_table(file_name).to_pandas().reset_index()
-        df.index.name = None
-    elif extension == ".nc":
-        nc = xr.open_dataset(file_name)
-        ts = str(nc.get("time").values)
-        df = nc.to_pandas().reset_index()[["feature_id", "q_lateral"]]
-        df.rename(columns={"q_lateral": f"{ts}"}, inplace=True)
-        df.index.name = None
-
-    return df
 
 
 def tailwaters(N):

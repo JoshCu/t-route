@@ -1069,8 +1069,12 @@ def read_file(file_name):
         df = pq.read_table(file_name).to_pandas().reset_index()
         df.index.name = None
     elif extension == ".nc":
-        df = xr.open_dataset(file_name).to_pandas().reset_index()
+        nc = xr.open_dataset(file_name)
+        ts = str(nc.get("time").values)
+        df = nc.to_pandas().reset_index()[["feature_id", "q_lateral"]]
+        df.rename(columns={"q_lateral": f"{ts}"}, inplace=True)
         df.index.name = None
+
     return df
 
 

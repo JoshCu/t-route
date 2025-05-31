@@ -1,4 +1,4 @@
-from .AbstractNetwork import AbstractNetwork
+from .AbstractNetwork import AbstractNetwork, read_file
 import troute.network.nhd_io as nhd_io
 import pandas as pd
 import numpy as np
@@ -8,6 +8,7 @@ from collections import defaultdict
 import netCDF4
 from joblib import delayed, Parallel
 import pyarrow.parquet as pq
+
 
 from troute.network.nhd_network import (
     reverse_dict,
@@ -178,7 +179,9 @@ class NHDNetwork(AbstractNetwork):
 
         # handle synthetic waterbody segments
         synthetic_wb_segments = self.supernetwork_parameters.get("synthetic_wb_segments", None)
-        synthetic_wb_id_offset = self.supernetwork_parameters.get("synthetic_wb_id_offset", 9.99e11)
+        synthetic_wb_id_offset = self.supernetwork_parameters.get(
+            "synthetic_wb_id_offset", 9.99e11
+        )
         if synthetic_wb_segments:
             # rename the current key column to key32
             key32_d = {"key": "key32"}
@@ -398,14 +401,3 @@ class NHDNetwork(AbstractNetwork):
             qlats_df = qlats_df[qlats_df.index.isin(self.segment_index)]
 
         self._qlateral = qlats_df
-
-
-def read_file(file_name):
-    extension = file_name.suffix
-    if extension == ".csv":
-        df = pd.read_csv(file_name)
-    elif extension == ".parquet":
-        df = pq.read_table(file_name).to_pandas().reset_index()
-        df.index.name = None
-
-    return df
