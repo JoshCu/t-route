@@ -144,54 +144,6 @@ def numeric_id(flowpath):
     flowpath['downstream'] = int(float(toid))
     return flowpath
 
-def read_ngen_waterbody_df(parm_file, lake_index_field="wb-id", lake_id_mask=None):
-    """
-    Reads .gpkg or lake.json file and prepares a dataframe, filtered
-    to the relevant reservoirs, to provide the parameters
-    for level-pool reservoir computation.
-    """
-    def node_key_func(x):
-        return int( x.split('-')[-1] )
-    if Path(parm_file).suffix=='.gpkg':
-        df = gpd.read_file(parm_file, layer='lakes')
-
-        df = (
-            df.drop(['id','toid','hl_id','hl_reference','hl_uri','geometry'], axis=1)
-            .rename(columns={'hl_link': 'lake_id'})
-            )
-        df['lake_id'] = df.lake_id.astype(float).astype(int)
-        df = df.set_index('lake_id').drop_duplicates().sort_index()
-    elif Path(parm_file).suffix=='.json':
-        df = pd.read_json(parm_file, orient="index")
-        df.index = df.index.map(node_key_func)
-        df.index.name = lake_index_field
-
-    if lake_id_mask:
-        df = df.loc[lake_id_mask]
-    return df
-
-def read_ngen_waterbody_type_df(parm_file, lake_index_field="wb-id", lake_id_mask=None):
-    """
-    """
-    #FIXME: this function is likely not correct. Unclear how we will get
-    # reservoir type from the gpkg files. Information should be in 'crosswalk'
-    # layer, but as of now (Nov 22, 2022) there doesn't seem to be a differentiation
-    # between USGS reservoirs, USACE reservoirs, or RFC reservoirs...
-    def node_key_func(x):
-        return int( x.split('-')[-1] )
-
-    if Path(parm_file).suffix=='.gpkg':
-        df = gpd.read_file(parm_file, layer="crosswalk").set_index('id')
-    elif Path(parm_file).suffix=='.json':
-        df = pd.read_json(parm_file, orient="index")
-
-    df.index = df.index.map(node_key_func)
-    df.index.name = lake_index_field
-    if lake_id_mask:
-        df = df.loc[lake_id_mask]
-
-    return df
-
 def read_geo_file(supernetwork_parameters, waterbody_parameters, compute_parameters, cpu_pool):
 
     geo_file_path = supernetwork_parameters["geo_file_path"]

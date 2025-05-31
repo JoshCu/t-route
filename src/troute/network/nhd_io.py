@@ -9,11 +9,9 @@ import yaml
 import xarray as xr
 import pandas as pd
 import numpy as np
-from toolz import compose
 import netCDF4
 from joblib import delayed, Parallel
 from cftime import date2num
-import dateutil.parser as dparser
 from datetime import datetime, timedelta
 
 LOG = logging.getLogger('')
@@ -38,7 +36,6 @@ def read_netcdf(geo_file_path):
     with xr.open_dataset(geo_file_path) as ds:
         return ds.to_dataframe()
 
-
 def read_csv(geo_file_path, header="infer", layer_string=None):
     if geo_file_path.suffix == ".zip":
         if layer_string is None:
@@ -59,102 +56,6 @@ def read(geo_file_path, layer_string=None, driver_string=None):
 def read_mask(path, layer_string=None):
     return read_csv(path, header=None, layer_string=layer_string)
 
-def read_config_file(custom_input_file):
-    '''
-    Read-in data from user-created configuration file.
-
-    Arguments
-    ---------
-    custom_input_file (str): configuration filepath, either .yaml or .json
-
-    Returns
-    -------
-    log_parameters               (dict): Input parameters re logging
-    preprocessing_parameters     (dict): Input parameters re preprocessing
-    supernetwork_parameters      (dict): Input parameters re network extent
-    waterbody_parameters         (dict): Input parameters re waterbodies
-    compute_parameters           (dict): Input parameters re computation settings
-    forcing_parameters           (dict): Input parameters re model forcings
-    restart_parameters           (dict): Input parameters re model restart
-    hybrid_parameters            (dict): Input parameters re diffusive wave model
-    output_parameters            (dict): Input parameters re output writing
-    parity_parameters            (dict): Input parameters re parity assessment
-    data_assimilation_parameters (dict): Input parameters re data assimilation
-
-    '''
-    if custom_input_file[-4:] == "yaml":
-        with open(custom_input_file) as custom_file:
-            data = yaml.load(custom_file, Loader=yaml.SafeLoader)
-    else:
-        with open(custom_input_file) as custom_file:
-            data = json.load(custom_file)
-
-    log_parameters = data.get("log_parameters", {})
-    network_topology_parameters = data.get("network_topology_parameters", None)
-    supernetwork_parameters = network_topology_parameters.get(
-        "supernetwork_parameters", None
-    )
-    # add attributes when HYfeature network is selected
-    if supernetwork_parameters['geo_file_path'][-4:] == "gpkg":
-        supernetwork_parameters["title_string"]       = "HY_Features Test"
-        supernetwork_parameters["geo_file_path"]      = supernetwork_parameters['geo_file_path']
-        supernetwork_parameters["flowpath_edge_list"] = None
-        routelink_attr = {
-                        #link????
-                        "key": "id",
-                        "downstream": "toid",
-                        "dx": "length_m",
-                        "n": "n",  # TODO: rename to `manningn`
-                        "ncc": "nCC",  # TODO: rename to `mannningncc`
-                        "s0": "So",
-                        "bw": "BtmWdth",  # TODO: rename to `bottomwidth`
-                        #waterbody: "NHDWaterbodyComID",
-                        "tw": "TopWdth",  # TODO: rename to `topwidth`
-                        "twcc": "TopWdthCC",  # TODO: rename to `topwidthcc`
-                        "alt": "alt",
-                        "musk": "MusK",
-                        "musx": "MusX",
-                        "cs": "ChSlp"  # TODO: rename to `sideslope`
-                        }
-        if not supernetwork_parameters.get('columns',None):
-            supernetwork_parameters["columns"]         = routelink_attr
-        supernetwork_parameters["waterbody_null_code"] = -9999
-        supernetwork_parameters["terminal_code"]       =  0
-        supernetwork_parameters["driver_string"]       = "NetCDF"
-        supernetwork_parameters["layer_string"]        = 0
-
-    preprocessing_parameters = network_topology_parameters.get(
-        "preprocessing_parameters", {}
-    )
-    #waterbody_parameters = network_topology_parameters.get(
-    #    "waterbody_parameters", None
-    #)
-    waterbody_parameters = network_topology_parameters.get(
-        "waterbody_parameters", {}
-    )
-    compute_parameters = data.get("compute_parameters", {})
-    forcing_parameters = compute_parameters.get("forcing_parameters", {})
-    restart_parameters = compute_parameters.get("restart_parameters", {})
-    hybrid_parameters = compute_parameters.get("hybrid_parameters", {})
-    data_assimilation_parameters = compute_parameters.get(
-        "data_assimilation_parameters", {}
-    )
-    output_parameters = data.get("output_parameters", {})
-    parity_parameters = output_parameters.get("wrf_hydro_parity_check", {})
-
-    return (
-        log_parameters,
-        preprocessing_parameters,
-        supernetwork_parameters,
-        waterbody_parameters,
-        compute_parameters,
-        forcing_parameters,
-        restart_parameters,
-        hybrid_parameters,
-        output_parameters,
-        parity_parameters,
-        data_assimilation_parameters,
-    )
 
 def read_diffusive_domain(domain_file):
     '''
@@ -203,47 +104,6 @@ def read_coastal_boundary_domain(domain_file):
 
     return data
 
-def read_custom_input(custom_input_file):
-    if custom_input_file[-4:] == "yaml":
-        with open(custom_input_file) as custom_file:
-            data = yaml.load(custom_file, Loader=yaml.SafeLoader)
-    else:
-        with open(custom_input_file) as custom_file:
-            data = json.load(custom_file)
-    supernetwork_parameters = data.get("supernetwork_parameters", None)
-    waterbody_parameters = data.get("waterbody_parameters", {})
-    forcing_parameters = data.get("forcing_parameters", {})
-    restart_parameters = data.get("restart_parameters", {})
-    output_parameters = data.get("output_parameters", {})
-    run_parameters = data.get("run_parameters", {})
-    parity_parameters = data.get("parity_parameters", {})
-    data_assimilation_parameters = data.get("data_assimilation_parameters", {})
-    diffusive_parameters = data.get("diffusive_parameters", {})
-    coastal_parameters = data.get("coastal_parameters", {})
-
-    # TODO: add error trapping for potentially missing files
-    return (
-        supernetwork_parameters,
-        waterbody_parameters,
-        forcing_parameters,
-        restart_parameters,
-        output_parameters,
-        run_parameters,
-        parity_parameters,
-        data_assimilation_parameters,
-        diffusive_parameters,
-        coastal_parameters,
-    )
-
-
-def replace_downstreams(data, downstream_col, terminal_code):
-    ds0_mask = data[downstream_col] == terminal_code
-    new_data = data.copy()
-    new_data.loc[ds0_mask, downstream_col] = ds0_mask.index[ds0_mask]
-
-    # Also set negative any nodes in downstream col not in data.index
-    new_data.loc[~data[downstream_col].isin(data.index), downstream_col] *= -1
-    return new_data
 
 def read_lakeparm(
     parm_file,
@@ -384,12 +244,6 @@ def get_ql_from_csv(nhd_input_file, index_col=0):
     return ql.astype("float32")
 
 
-def read_qlat(path):
-    """
-    retained for backwards compatibility with early v02 files
-    """
-    return get_ql_from_csv(path)
-
 def get_ql_from_chrtout(
     f,
     qlateral_varname = "q_lateral",
@@ -505,9 +359,6 @@ def get_ql_from_wrf_hydro_mf(
 
     return ql
 
-
-def drop_all_coords(ds):
-    return ds.reset_coords(drop=True)
 
 def write_chanobs(
     chanobs_filepath,
@@ -805,88 +656,6 @@ def write_chrtout(
     else:
         LOG.debug("Simulation duration is less than one qts_subdivision. No CHRTOUT files written.")
 
-def get_ql_from_wrf_hydro(qlat_files, index_col="station_id", value_col="q_lateral"):
-    """
-    qlat_files: globbed list of CHRTOUT files containing desired lateral inflows
-    index_col: column/field in the CHRTOUT files with the segment/link id
-    value_col: column/field in the CHRTOUT files with the lateral inflow value
-    In general the CHRTOUT files contain one value per time step. At present, there is
-    no capability for handling non-uniform timesteps in the qlaterals.
-    The qlateral may also be input using comma delimited file -- see
-    `get_ql_from_csv`
-    """
-
-    li = []
-
-    for filename in qlat_files:
-        with xr.open_dataset(filename) as ds:
-            df1 = ds[["time", value_col]].to_dataframe()
-
-        li.append(df1)
-
-    frame = pd.concat(li, axis=0, ignore_index=False)
-    mod = frame.reset_index()
-    ql = mod.pivot(index=index_col, columns="time", values=value_col)
-
-    return ql
-
-
-def read_netcdfs(paths, dim, transform_func=None):
-    def process_one_path(path):
-        with xr.open_dataset(path) as ds:
-            if transform_func is not None:
-                ds = transform_func(ds)
-            ds.load()
-            return ds
-
-    datasets = [process_one_path(p) for p in paths]
-    combined = xr.concat(datasets, dim, combine_attrs = "override")
-    return combined
-
-
-def preprocess_time_station_index(xd):
-    stationId_da_mask = list(
-        map(compose(bytes.isalnum, bytes.strip), xd.stationId.values)
-    )
-    stationId = list(map(bytes.strip, xd.stationId[stationId_da_mask].values))
-    #stationId_int = xd.stationId[stationId_da_mask].values.astype(int)
-
-    unique_times_str = np.unique(xd.time.values).tolist()
-
-    unique_times = np.array(unique_times_str, dtype="str")
-
-    center_time = xd.sliceCenterTimeUTC
-
-    tmask = []
-    for t in unique_times_str:
-        tmask.append(xd.time == t)
-
-    data_var_dict = {}
-    # TODO: make this input parameters
-    data_vars = ("discharge", "discharge_quality")
-
-    for v in data_vars:
-        vals = []
-        for i, t in enumerate(unique_times_str):
-            vals.append(np.where(tmask[i],xd[v].values[stationId_da_mask],np.nan))
-        combined = np.vstack(vals).T
-        data_var_dict[v] = (["stationId","time"], combined)
-
-    return xr.Dataset(
-        data_vars=data_var_dict,
-        coords={"stationId": stationId, "time": unique_times},
-        attrs={"sliceCenterTimeUTC": center_time},
-    )
-
-
-def get_nc_attributes(nc_list, attribute, file_selection=[0, -1]):
-    rv = []
-    for fs in file_selection:
-        try:
-            rv.append(get_attribute(nc_list[fs], attribute))
-        except:
-            rv.append(-1)
-    return rv
 
 
 def get_attribute(nc_file, attribute):
@@ -1670,65 +1439,6 @@ def get_reservoir_restart_from_wrf_hydro(
 
     return init_waterbody_states
 
-
-def build_coastal_dataframe(coastal_boundary_elev):
-    coastal_df = pd.read_csv(
-        coastal_boundary_elev, sep="  ", header=None, engine="python"
-    )
-    return coastal_df
-
-
-def build_coastal_ncdf_dataframe(
-                                coastal_files,
-                                coastal_boundary_domain,
-                                ):
-
-    # retrieve coastal elevation, topo depth, and temporal data
-    ds = netCDF4.Dataset(filename = coastal_files,  mode = 'r', format = "NETCDF4")
-
-    tws = list(coastal_boundary_domain.keys())
-    coastal_boundary_nodes = list(coastal_boundary_domain.values())
-
-    elev_NAVD88 = ds.variables['elev'][:, coastal_boundary_nodes].filled(fill_value = np.nan)
-    depth_bathy = ds.variables['depth'][coastal_boundary_nodes].filled(fill_value = np.nan)
-    timesteps   = ds.variables['time'][:]
-    if len(timesteps) > 1:
-        dt_schism = timesteps[1]-timesteps[0]
-    else:
-        raise RuntimeError("schism provided less than 2 time steps")
-
-    start_date = ds.variables['time'].units
-    start_date   = dparser.parse(start_date,fuzzy=True)
-    dt_timeslice = timedelta(minutes=dt_schism/60.0)
-    tfin         =  start_date + dt_timeslice*len(timesteps)
-    timestamps   = pd.date_range(start_date, tfin, freq=dt_timeslice)
-    timestamps   = timestamps.strftime('%Y-%m-%d %H:%M:%S')
-
-    # create a dataframe of water depth at coastal domain nodes
-    timeslice_schism_list=[]
-    for t in range(0, len(timesteps)+1):
-        timeslice= np.full(len(tws), timestamps[t])
-        if t==0:
-            depth = np.nan
-        else:
-            depth =  elev_NAVD88[t-1,:] + depth_bathy
-
-        timeslice_schism  = (pd.DataFrame({
-                                'stationId' : tws,
-                                'datetime'  : timeslice,
-                                'depth'     : depth
-                            }).
-                             set_index(['stationId', 'datetime']).
-                             unstack(1, fill_value = np.nan)['depth'])
-
-        timeslice_schism_list.append(timeslice_schism)
-
-    coastal_boundary_depth_df = pd.concat(timeslice_schism_list, axis=1, ignore_index=False)
-
-    # linearly extrapolate depth value at start date
-    coastal_boundary_depth_df.iloc[:,0] = 2.0*coastal_boundary_depth_df.iloc[:,1] - coastal_boundary_depth_df.iloc[:,2]
-
-    return coastal_boundary_depth_df
 
 def lastobs_df_output(
     lastobs_df,

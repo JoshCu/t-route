@@ -2,7 +2,6 @@ from collections import defaultdict
 from itertools import chain
 from functools import partial
 from joblib import delayed, Parallel
-from datetime import datetime
 import time
 import pandas as pd
 import numpy as np
@@ -23,17 +22,6 @@ _compute_func_map = defaultdict(
         "V02-structured": compute_network_structured,
     },
 )
-
-
-def _format_qlat_start_time(qlat_start_time):
-    if not isinstance(qlat_start_time,datetime):
-        try:
-            return datetime.strptime(qlat_start_time, '%Y-%m-%d %H:%M:%S')
-        except:  # TODO: make sure this doesn't introduce a silent error
-            return datetime.now()
-
-    else:
-        return qlat_start_time
 
 
 def _build_reach_type_list(reach_list, wbodies_segs):
