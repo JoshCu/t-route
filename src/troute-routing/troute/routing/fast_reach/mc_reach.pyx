@@ -88,10 +88,8 @@ cdef void compute_reach_kernel(float qup, float quc, int nreach, const float[:,:
         int i
 
     
-    if giuh:
-        qlat_in = 0.0
-    else:
-        qlat_in = input_buf[i, 0] # n x 1   
+    qlat_in = 0.0
+    quc += input_buf[i, 0]
 
     for i in range(nreach):
         qlat = qlat_in # n x 1
@@ -128,9 +126,6 @@ cdef void compute_reach_kernel(float qup, float quc, int nreach, const float[:,:
 
 #        output_buf[i, 0] = quc = out.qdc # this will ignore short TS assumption at seg-to-set scale?
         
-        if giuh:
-            out.qdc += input_buf[i, 0]  
-
         output_buf[i, 0] = out.qdc
         output_buf[i, 1] = out.velc
         output_buf[i, 2] = out.depthc

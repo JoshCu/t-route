@@ -47,10 +47,10 @@ def read_geopkg(file_path, compute_parameters, waterbody_parameters, cpu_pool):
     matched_layers = {key: find_layer_name(available_layers, pattern) 
                       for key, pattern in layer_patterns.items()}
     
-    layers_to_read = ['flowpaths', 'flowpath_attributes']
+    layers_to_read = ['flowpaths', 'flowpath_attributes', 'nexus']
     
     if waterbody_parameters.get('break_network_at_waterbodies', False):
-        layers_to_read.extend(['lakes', 'nexus'])
+        layers_to_read.extend(['lakes'])
 
     data_assimilation_parameters = compute_parameters.get('data_assimilation_parameters', {})
     if any([
@@ -404,6 +404,10 @@ class HYFeaturesNetwork(AbstractNetwork):
             #        musx: "MusX"
             #        cs: "ChSlp"  # TODO: rename to `sideslope`
             self._dataframe = self.dataframe.rename(columns=reverse_dict(cols))
+            
+        # Drop all headwaters
+        no_head = self.dataframe["key"].isin(nexus.toid)
+        self._dataframe = self.dataframe.loc[no_head]
         
         # Don't need the string prefix anymore, drop it
         mask = ~ self.dataframe['downstream'].str.startswith("tnx") 
